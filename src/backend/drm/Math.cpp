@@ -57,7 +57,7 @@ void matrixRotate(float mat[9], float rad) {
 }
 
 std::unordered_map<eTransform, std::array<float, 9>> transforms = {
-    {HYPRUTILS_TRANSFORM_NORMAL,
+    {ABYSSUTILS_TRANSFORM_NORMAL,
      {
          1.0f,
          0.0f,
@@ -69,7 +69,7 @@ std::unordered_map<eTransform, std::array<float, 9>> transforms = {
          0.0f,
          1.0f,
      }},
-    {HYPRUTILS_TRANSFORM_90,
+    {ABYSSUTILS_TRANSFORM_90,
      {
          0.0f,
          1.0f,
@@ -81,7 +81,7 @@ std::unordered_map<eTransform, std::array<float, 9>> transforms = {
          0.0f,
          1.0f,
      }},
-    {HYPRUTILS_TRANSFORM_180,
+    {ABYSSUTILS_TRANSFORM_180,
      {
          -1.0f,
          0.0f,
@@ -93,7 +93,7 @@ std::unordered_map<eTransform, std::array<float, 9>> transforms = {
          0.0f,
          1.0f,
      }},
-    {HYPRUTILS_TRANSFORM_270,
+    {ABYSSUTILS_TRANSFORM_270,
      {
          0.0f,
          -1.0f,
@@ -105,7 +105,7 @@ std::unordered_map<eTransform, std::array<float, 9>> transforms = {
          0.0f,
          1.0f,
      }},
-    {HYPRUTILS_TRANSFORM_FLIPPED,
+    {ABYSSUTILS_TRANSFORM_FLIPPED,
      {
          -1.0f,
          0.0f,
@@ -117,7 +117,7 @@ std::unordered_map<eTransform, std::array<float, 9>> transforms = {
          0.0f,
          1.0f,
      }},
-    {HYPRUTILS_TRANSFORM_FLIPPED_90,
+    {ABYSSUTILS_TRANSFORM_FLIPPED_90,
      {
          0.0f,
          1.0f,
@@ -129,7 +129,7 @@ std::unordered_map<eTransform, std::array<float, 9>> transforms = {
          0.0f,
          1.0f,
      }},
-    {HYPRUTILS_TRANSFORM_FLIPPED_180,
+    {ABYSSUTILS_TRANSFORM_FLIPPED_180,
      {
          1.0f,
          0.0f,
@@ -141,7 +141,7 @@ std::unordered_map<eTransform, std::array<float, 9>> transforms = {
          0.0f,
          1.0f,
      }},
-    {HYPRUTILS_TRANSFORM_FLIPPED_270,
+    {ABYSSUTILS_TRANSFORM_FLIPPED_270,
      {
          0.0f,
          -1.0f,
@@ -197,7 +197,7 @@ void projectBox(float mat[9], CBox& box, eTransform transform, float rotation, c
 
     matrixScale(mat, width, height);
 
-    if (transform != HYPRUTILS_TRANSFORM_NORMAL) {
+    if (transform != ABYSSUTILS_TRANSFORM_NORMAL) {
         matrixTranslate(mat, 0.5, 0.5);
         matrixTransform(mat, transform);
         matrixTranslate(mat, -0.5, -0.5);

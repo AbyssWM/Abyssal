@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 3.19)
 
 file(READ "${CMAKE_SOURCE_DIR}/VERSION" VER_RAW)
-string(STRIP ${VER_RAW} AQUAMARINE_VERSION)
+string(STRIP ${VER_RAW} ABYSSAL_VERSION)
 
-add_compile_definitions(AQUAMARINE_VERSION="${AQUAMARINE_VERSION}")
+add_compile_definitions(ABYSSAL_VERSION="${ABYSSAL_VERSION}")
 
 project(
-  aquamarine
-  VERSION ${AQUAMARINE_VERSION}
+  abyssal
+  VERSION ${ABYSSAL_VERSION}
   DESCRIPTION "A very light linux rendering backend library")
 
 include(CTest)
@@ -21,7 +21,7 @@ set(LIBDIR ${CMAKE_INSTALL_FULL_LIBDIR})
 find_package(PkgConfig REQUIRED)
 find_package(OpenGL REQUIRED COMPONENTS "GLES3")
 find_package(Threads REQUIRED)
-find_package(hyprwayland-scanner 0.4.0 REQUIRED)
+find_package(abyss-scanner 0.4.0 REQUIRED)
 pkg_check_modules(
   deps
   REQUIRED
@@ -30,7 +30,7 @@ pkg_check_modules(
   libinput>=1.26.0
   wayland-client
   wayland-protocols
-  hyprutils>=0.8.0
+  abyssutils>=0.8.0
   pixman-1
   libdrm
   gbm
@@ -38,7 +38,7 @@ pkg_check_modules(
   libdisplay-info
   hwdata)
 
-configure_file(aquamarine.pc.in aquamarine.pc @ONLY)
+configure_file(abyssal.pc.in abyssal.pc @ONLY)
 
 set(CMAKE_CXX_STANDARD 23)
 add_compile_options(
@@ -51,32 +51,32 @@ add_compile_options(
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
 if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
-  message(STATUS "Configuring aquamarine in Debug")
-  add_compile_definitions(AQUAMARINE_DEBUG)
+  message(STATUS "Configuring abyssal in Debug")
+  add_compile_definitions(ABYSSAL_DEBUG)
 else()
   add_compile_options(-O3)
-  message(STATUS "Configuring aquamarine in Release")
+  message(STATUS "Configuring abyssal in Release")
 endif()
 
 file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "src/*.cpp" "include/*.hpp")
 file(GLOB_RECURSE PUBLIC_HEADERS CONFIGURE_DEPENDS "include/*.hpp")
 
-add_library(aquamarine SHARED ${SRCFILES})
+add_library(abyssal SHARED ${SRCFILES})
 if(deps_libinput_VERSION VERSION_GREATER_EQUAL "1.30")
-  target_compile_definitions(aquamarine PRIVATE AQUAMARINE_HAS_LIBINPUT_PLUGINS)
+  target_compile_definitions(abyssal PRIVATE ABYSSAL_HAS_LIBINPUT_PLUGINS)
 endif()
 target_include_directories(
-  aquamarine
+  abyssal
   PUBLIC "./include"
   PRIVATE "./src" "./src/include" "./protocols" "${CMAKE_BINARY_DIR}")
-set_target_properties(aquamarine PROPERTIES VERSION ${AQUAMARINE_VERSION}
+set_target_properties(abyssal PROPERTIES VERSION ${ABYSSAL_VERSION}
                                             SOVERSION 14)
-target_link_libraries(aquamarine OpenGL::EGL OpenGL::OpenGL PkgConfig::deps Threads::Threads)
+target_link_libraries(abyssal OpenGL::EGL OpenGL::OpenGL PkgConfig::deps Threads::Threads)
 
 check_include_file("sys/timerfd.h" HAS_TIMERFD)
 pkg_check_modules(epoll IMPORTED_TARGET epoll-shim)
 if(NOT HAS_TIMERFD AND epoll_FOUND)
-  target_link_libraries(aquamarine PkgConfig::epoll)
+  target_link_libraries(abyssal PkgConfig::epoll)
 endif()
 
 # Protocols
@@ -94,20 +94,20 @@ function(protocolNew protoPath protoName external)
   add_custom_command(
     OUTPUT ${CMAKE_SOURCE_DIR}/protocols/${protoName}.cpp
            ${CMAKE_SOURCE_DIR}/protocols/${protoName}.hpp
-    COMMAND hyprwayland-scanner --client ${path}/${protoName}.xml
+    COMMAND abyss-scanner --client ${path}/${protoName}.xml
             ${CMAKE_SOURCE_DIR}/protocols/
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-  target_sources(aquamarine PRIVATE protocols/${protoName}.cpp
+  target_sources(abyssal PRIVATE protocols/${protoName}.cpp
                                     protocols/${protoName}.hpp)
 endfunction()
 function(protocolWayland)
   add_custom_command(
     OUTPUT ${CMAKE_SOURCE_DIR}/protocols/wayland.cpp
            ${CMAKE_SOURCE_DIR}/protocols/wayland.hpp
-    COMMAND hyprwayland-scanner --wayland-enums --client
+    COMMAND abyss-scanner --wayland-enums --client
             ${WAYLAND_SCANNER_PKGDATA_DIR}/wayland.xml ${CMAKE_SOURCE_DIR}/protocols/
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-  target_sources(aquamarine PRIVATE protocols/wayland.cpp protocols/wayland.hpp)
+  target_sources(abyssal PRIVATE protocols/wayland.cpp protocols/wayland.hpp)
 endfunction()
 
 protocolwayland()
@@ -135,7 +135,7 @@ configure_file(data/hwdata.hpp.in hwdata.hpp @ONLY)
 add_custom_target(tests)
 
 add_executable(simpleWindow "tests/SimpleWindow.cpp")
-target_link_libraries(simpleWindow PRIVATE PkgConfig::deps aquamarine)
+target_link_libraries(simpleWindow PRIVATE PkgConfig::deps abyssal)
 add_test(
   NAME "simpleWindow"
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests
@@ -143,7 +143,7 @@ add_test(
 add_dependencies(tests simpleWindow)
 
 add_executable(attachments "tests/Attachments.cpp")
-target_link_libraries(attachments PRIVATE PkgConfig::deps aquamarine)
+target_link_libraries(attachments PRIVATE PkgConfig::deps abyssal)
 add_test(
   NAME "attachments"
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests
@@ -152,7 +152,7 @@ add_dependencies(tests attachments)
 
 add_executable(output "tests/Output.cpp")
 target_include_directories(output PRIVATE "./src/include")
-target_link_libraries(output PRIVATE PkgConfig::deps aquamarine)
+target_link_libraries(output PRIVATE PkgConfig::deps abyssal)
 add_test(
   NAME "output"
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests
@@ -161,7 +161,7 @@ add_dependencies(tests output)
 
 add_executable(commitThread "tests/CommitThread.cpp")
 target_include_directories(commitThread PRIVATE "./src/backend/drm")
-target_link_libraries(commitThread PRIVATE PkgConfig::deps aquamarine)
+target_link_libraries(commitThread PRIVATE PkgConfig::deps abyssal)
 add_test(
   NAME "commitThread"
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests
@@ -169,7 +169,7 @@ add_test(
 add_dependencies(tests commitThread)
 
 # Installation
-install(TARGETS aquamarine)
-install(DIRECTORY "include/aquamarine" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(FILES ${CMAKE_BINARY_DIR}/aquamarine.pc
+install(TARGETS abyssal)
+install(DIRECTORY "include/abyssal" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES ${CMAKE_BINARY_DIR}/abyssal.pc
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)

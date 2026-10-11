@@ -2,11 +2,11 @@
 
 #include <array>
 #include <tuple>
-#include <hyprutils/signal/Signal.hpp>
-#include <hyprutils/math/Region.hpp>
+#include <abyssutils/signal/Signal.hpp>
+#include <abyssutils/math/Region.hpp>
 #include "../misc/Attachment.hpp"
 
-namespace Aquamarine {
+namespace Abyssal {
     enum eBufferCapability : uint32_t {
         BUFFER_CAPABILITY_NONE    = 0,
         BUFFER_CAPABILITY_DATAPTR = (1 << 0),
@@ -20,7 +20,7 @@ namespace Aquamarine {
 
     struct SDMABUFAttrs {
         bool                      success = false;
-        Hyprutils::Math::Vector2D size;
+        Abyssutils::Math::Vector2D size;
         uint32_t                  format   = 0; // fourcc
         uint64_t                  modifier = 0;
 
@@ -34,7 +34,7 @@ namespace Aquamarine {
         bool                      success = false;
         int                       fd      = 0;
         uint32_t                  format  = 0;
-        Hyprutils::Math::Vector2D size;
+        Abyssutils::Math::Vector2D size;
         int                       stride = 0;
         int64_t                   offset = 0;
     };
@@ -47,7 +47,7 @@ namespace Aquamarine {
 
         virtual eBufferCapability                      caps()                                         = 0;
         virtual eBufferType                            type()                                         = 0;
-        virtual void                                   update(const Hyprutils::Math::CRegion& damage) = 0;
+        virtual void                                   update(const Abyssutils::Math::CRegion& damage) = 0;
         virtual bool                                   isSynchronous() = 0; // whether the updates to this buffer are synchronous, aka happen over cpu
         virtual bool                                   good()          = 0;
         virtual SDMABUFAttrs                           dmabuf();
@@ -62,15 +62,15 @@ namespace Aquamarine {
         void                                           backendUnpin();
         uint32_t                                       backendPinCount() const;
 
-        Hyprutils::Math::Vector2D                      size;
+        Abyssutils::Math::Vector2D                      size;
         bool                                           opaque          = false;
         bool                                           lockedByBackend = false;
 
         CAttachmentManager                             attachments;
 
         struct {
-            Hyprutils::Signal::CSignalT<> destroy;
-            Hyprutils::Signal::CSignalT<> backendRelease;
+            Abyssutils::Signal::CSignalT<> destroy;
+            Abyssutils::Signal::CSignalT<> backendRelease;
         } events;
 
       private:

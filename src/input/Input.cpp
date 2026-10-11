@@ -1,37 +1,37 @@
-#include <aquamarine/input/Input.hpp>
+#include <abyssal/input/Input.hpp>
 
-libinput_device* Aquamarine::IPointer::getLibinputHandle() {
+libinput_device* Abyssal::IPointer::getLibinputHandle() {
     return nullptr;
 }
 
-libinput_device* Aquamarine::IKeyboard::getLibinputHandle() {
+libinput_device* Abyssal::IKeyboard::getLibinputHandle() {
     return nullptr;
 }
 
-libinput_device* Aquamarine::ITouch::getLibinputHandle() {
+libinput_device* Abyssal::ITouch::getLibinputHandle() {
     return nullptr;
 }
 
-libinput_device* Aquamarine::ISwitch::getLibinputHandle() {
+libinput_device* Abyssal::ISwitch::getLibinputHandle() {
     return nullptr;
 }
 
-libinput_device* Aquamarine::ITabletTool::getLibinputHandle() {
+libinput_device* Abyssal::ITabletTool::getLibinputHandle() {
     return nullptr;
 }
 
-libinput_tablet_tool* Aquamarine::ITabletTool::getLibinputTool() {
+libinput_tablet_tool* Abyssal::ITabletTool::getLibinputTool() {
     return nullptr;
 }
 
-libinput_device* Aquamarine::ITablet::getLibinputHandle() {
+libinput_device* Abyssal::ITablet::getLibinputHandle() {
     return nullptr;
 }
 
-libinput_device* Aquamarine::ITabletPad::getLibinputHandle() {
+libinput_device* Abyssal::ITabletPad::getLibinputHandle() {
     return nullptr;
 }
 
-void Aquamarine::IKeyboard::updateLEDs(uint32_t leds) {
+void Abyssal::IKeyboard::updateLEDs(uint32_t leds) {
     ;
 }

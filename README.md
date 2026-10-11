@@ -1,22 +1,52 @@
-## Aquamarine
+<div align="center">
 
-Aquamarine is a very light linux rendering backend library. It provides basic abstractions
-for an application to render on a Wayland session (in a window) or a native DRM session.
+<img src="https://github.com/AbyssWM.png?size=200" width="160" alt="Abyss logo">
 
-It is agnostic of the rendering API (Vulkan/OpenGL) and designed to be lightweight, performant, and
-minimal.
+# Abyssal
 
-Aquamarine provides no bindings for other languages. It is C++-only.
+**Rendering and backend library for Abyssland.**
 
-## Stability
+Part of [**Abyss**](https://github.com/AbyssWM) · Based on [aquamarine](https://github.com/hyprwm/aquamarine) by [hyprwm](https://github.com/hyprwm)
 
-Aquamarine depends on the ABI stability of the stdlib implementation of your compiler. Sover bumps will be done only for aquamarine ABI breaks, not stdlib.
+</div>
 
-## Building
+---
 
-```sh
-cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX:PATH=/usr -S . -B ./build
-cmake --build ./build --config Release --target all -j`nproc 2>/dev/null || getconf _NPROCESSORS_CONF`
-```
+> [!WARNING]
+> **Early development.** Abyss is being rebranded and reworked right now. Nothing is ready for daily use yet.
 
+## About
 
+Abyssal provides the low-level backends (DRM/KMS, libinput, Wayland, headless), buffers and outputs that Abyssland renders to.
+
+Abyssal is a fork of [aquamarine](https://github.com/hyprwm/aquamarine). Every Abyss library and tool is forked and renamed, so the whole ecosystem builds and updates as one – independent of system packages.
+
+## The Abyss ecosystem
+
+| Repository | Based on |
+|---|---|
+| [Abyssland](https://github.com/AbyssWM/Abyssland) | [Hyprland](https://github.com/hyprwm/Hyprland) |
+| **Abyssal** | [aquamarine](https://github.com/hyprwm/aquamarine) |
+| [Abyssutils](https://github.com/AbyssWM/Abyssutils) | [hyprutils](https://github.com/hyprwm/hyprutils) |
+| [Abyssparse](https://github.com/AbyssWM/Abyssparse) | [hyprlang](https://github.com/hyprwm/hyprlang) |
+| [Abysscursor](https://github.com/AbyssWM/Abysscursor) | [hyprcursor](https://github.com/hyprwm/hyprcursor) |
+| [Abyssgraphics](https://github.com/AbyssWM/Abyssgraphics) | [hyprgraphics](https://github.com/hyprwm/hyprgraphics) |
+| [Abysswire](https://github.com/AbyssWM/Abysswire) | [hyprwire](https://github.com/hyprwm/hyprwire) |
+| [Abyss-scanner](https://github.com/AbyssWM/Abyss-scanner) | [hyprwayland-scanner](https://github.com/hyprwm/hyprwayland-scanner) |
+| [Abyssland-protocols](https://github.com/AbyssWM/Abyssland-protocols) | [hyprland-protocols](https://github.com/hyprwm/hyprland-protocols) |
+| [Xdg-desktop-portal-abyss](https://github.com/AbyssWM/Xdg-desktop-portal-abyss) | [xdg-desktop-portal-hyprland](https://github.com/hyprwm/xdg-desktop-portal-hyprland) |
+
+## Credits
+
+Abyssal exists thanks to **[aquamarine](https://github.com/hyprwm/aquamarine)**, created by **Hypr Development** at **[hyprwm](https://github.com/hyprwm)**. All credit for the original work goes to them – please support the original project.
+
+Abyss is an independent project and is **not affiliated with or endorsed by hyprwm**.
+
+## License
+
+This project is licensed under the **BSD 3-Clause License**. The original copyright notice is kept in [`LICENSE`](LICENSE) as required.
+
+## Contributors
+
+- [bb8TheRobot](https://github.com/bb8TheRobot)
+- Claude (Anthropic) – AI pair programmer

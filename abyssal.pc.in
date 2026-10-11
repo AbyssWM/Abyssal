@@ -2,9 +2,9 @@ prefix=@PREFIX@
 includedir=@INCLUDE@
 libdir=@LIBDIR@
 
-Name: aquamarine
-URL: https://github.com/hyprwm/aquamarine
+Name: abyssal
+URL: https://github.com/AbyssWM/abyssal
 Description: A very light linux rendering backend library
-Version: @AQUAMARINE_VERSION@
+Version: @ABYSSAL_VERSION@
 Cflags: -I${includedir}
-Libs: -L${libdir} -laquamarine
+Libs: -L${libdir} -labyssal

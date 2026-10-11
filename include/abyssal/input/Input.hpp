@@ -1,13 +1,13 @@
 #pragma once
 
-#include <hyprutils/signal/Signal.hpp>
-#include <hyprutils/math/Vector2D.hpp>
-#include <hyprutils/memory/WeakPtr.hpp>
+#include <abyssutils/signal/Signal.hpp>
+#include <abyssutils/math/Vector2D.hpp>
+#include <abyssutils/memory/WeakPtr.hpp>
 
 struct libinput_device;
 struct libinput_tablet_tool;
 
-namespace Aquamarine {
+namespace Abyssal {
     class IOutput;
     class ITabletTool;
 
@@ -31,9 +31,9 @@ namespace Aquamarine {
         };
 
         struct {
-            Hyprutils::Signal::CSignalT<>                destroy;
-            Hyprutils::Signal::CSignalT<SKeyEvent>       key;
-            Hyprutils::Signal::CSignalT<SModifiersEvent> modifiers;
+            Abyssutils::Signal::CSignalT<>                destroy;
+            Abyssutils::Signal::CSignalT<SKeyEvent>       key;
+            Abyssutils::Signal::CSignalT<SModifiersEvent> modifiers;
         } events;
     };
 
@@ -47,31 +47,31 @@ namespace Aquamarine {
         virtual const std::string& getName() = 0;
 
         enum ePointerAxis : uint32_t {
-            AQ_POINTER_AXIS_VERTICAL = 0,
-            AQ_POINTER_AXIS_HORIZONTAL,
+            ABYSSAL_POINTER_AXIS_VERTICAL = 0,
+            ABYSSAL_POINTER_AXIS_HORIZONTAL,
         };
 
         enum ePointerAxisSource : uint32_t {
-            AQ_POINTER_AXIS_SOURCE_WHEEL = 0,
-            AQ_POINTER_AXIS_SOURCE_FINGER,
-            AQ_POINTER_AXIS_SOURCE_CONTINUOUS,
-            AQ_POINTER_AXIS_SOURCE_TILT,
+            ABYSSAL_POINTER_AXIS_SOURCE_WHEEL = 0,
+            ABYSSAL_POINTER_AXIS_SOURCE_FINGER,
+            ABYSSAL_POINTER_AXIS_SOURCE_CONTINUOUS,
+            ABYSSAL_POINTER_AXIS_SOURCE_TILT,
         };
 
         enum ePointerAxisRelativeDirection : uint32_t {
-            AQ_POINTER_AXIS_RELATIVE_IDENTICAL = 0,
-            AQ_POINTER_AXIS_RELATIVE_INVERTED,
+            ABYSSAL_POINTER_AXIS_RELATIVE_IDENTICAL = 0,
+            ABYSSAL_POINTER_AXIS_RELATIVE_INVERTED,
         };
 
         struct SMoveEvent {
             uint32_t                  timeMs = 0;
-            Hyprutils::Math::Vector2D delta, unaccel;
+            Abyssutils::Math::Vector2D delta, unaccel;
         };
 
         struct SWarpEvent {
             uint32_t                                 timeMs = 0;
-            Hyprutils::Math::Vector2D                absolute;
-            Hyprutils::Memory::CWeakPointer<IOutput> output; // absolute is local to this output when present
+            Abyssutils::Math::Vector2D                absolute;
+            Abyssutils::Memory::CWeakPointer<IOutput> output; // absolute is local to this output when present
         };
 
         struct SButtonEvent {
@@ -82,9 +82,9 @@ namespace Aquamarine {
 
         struct SAxisEvent {
             uint32_t                      timeMs    = 0;
-            ePointerAxis                  axis      = AQ_POINTER_AXIS_VERTICAL;
-            ePointerAxisSource            source    = AQ_POINTER_AXIS_SOURCE_WHEEL;
-            ePointerAxisRelativeDirection direction = AQ_POINTER_AXIS_RELATIVE_IDENTICAL;
+            ePointerAxis                  axis      = ABYSSAL_POINTER_AXIS_VERTICAL;
+            ePointerAxisSource            source    = ABYSSAL_POINTER_AXIS_SOURCE_WHEEL;
+            ePointerAxisRelativeDirection direction = ABYSSAL_POINTER_AXIS_RELATIVE_IDENTICAL;
             double                        delta = 0.0, discrete = 0.0;
         };
 
@@ -96,7 +96,7 @@ namespace Aquamarine {
         struct SSwipeUpdateEvent {
             uint32_t                  timeMs  = 0;
             uint32_t                  fingers = 0;
-            Hyprutils::Math::Vector2D delta;
+            Abyssutils::Math::Vector2D delta;
         };
 
         struct SSwipeEndEvent {
@@ -112,7 +112,7 @@ namespace Aquamarine {
         struct SPinchUpdateEvent {
             uint32_t                  timeMs  = 0;
             uint32_t                  fingers = 0;
-            Hyprutils::Math::Vector2D delta;
+            Abyssutils::Math::Vector2D delta;
             double                    scale = 1.0, rotation = 0.0;
         };
 
@@ -132,23 +132,23 @@ namespace Aquamarine {
         };
 
         struct {
-            Hyprutils::Signal::CSignalT<>                  destroy;
-            Hyprutils::Signal::CSignalT<SMoveEvent>        move;
-            Hyprutils::Signal::CSignalT<SWarpEvent>        warp;
-            Hyprutils::Signal::CSignalT<SButtonEvent>      button;
-            Hyprutils::Signal::CSignalT<SAxisEvent>        axis;
-            Hyprutils::Signal::CSignalT<>                  frame;
+            Abyssutils::Signal::CSignalT<>                  destroy;
+            Abyssutils::Signal::CSignalT<SMoveEvent>        move;
+            Abyssutils::Signal::CSignalT<SWarpEvent>        warp;
+            Abyssutils::Signal::CSignalT<SButtonEvent>      button;
+            Abyssutils::Signal::CSignalT<SAxisEvent>        axis;
+            Abyssutils::Signal::CSignalT<>                  frame;
 
-            Hyprutils::Signal::CSignalT<SSwipeBeginEvent>  swipeBegin;
-            Hyprutils::Signal::CSignalT<SSwipeUpdateEvent> swipeUpdate;
-            Hyprutils::Signal::CSignalT<SSwipeEndEvent>    swipeEnd;
+            Abyssutils::Signal::CSignalT<SSwipeBeginEvent>  swipeBegin;
+            Abyssutils::Signal::CSignalT<SSwipeUpdateEvent> swipeUpdate;
+            Abyssutils::Signal::CSignalT<SSwipeEndEvent>    swipeEnd;
 
-            Hyprutils::Signal::CSignalT<SPinchBeginEvent>  pinchBegin;
-            Hyprutils::Signal::CSignalT<SPinchUpdateEvent> pinchUpdate;
-            Hyprutils::Signal::CSignalT<SPinchEndEvent>    pinchEnd;
+            Abyssutils::Signal::CSignalT<SPinchBeginEvent>  pinchBegin;
+            Abyssutils::Signal::CSignalT<SPinchUpdateEvent> pinchUpdate;
+            Abyssutils::Signal::CSignalT<SPinchEndEvent>    pinchEnd;
 
-            Hyprutils::Signal::CSignalT<SHoldBeginEvent>   holdBegin;
-            Hyprutils::Signal::CSignalT<SHoldEndEvent>     holdEnd;
+            Abyssutils::Signal::CSignalT<SHoldBeginEvent>   holdBegin;
+            Abyssutils::Signal::CSignalT<SHoldEndEvent>     holdEnd;
         } events;
     };
 
@@ -161,12 +161,12 @@ namespace Aquamarine {
         virtual libinput_device*   getLibinputHandle();
         virtual const std::string& getName() = 0;
 
-        Hyprutils::Math::Vector2D  physicalSize; // in mm, 0,0 if unknown
+        Abyssutils::Math::Vector2D  physicalSize; // in mm, 0,0 if unknown
 
         struct SDownEvent {
             uint32_t                  timeMs  = 0;
             int32_t                   touchID = 0;
-            Hyprutils::Math::Vector2D pos;
+            Abyssutils::Math::Vector2D pos;
         };
 
         struct SUpEvent {
@@ -177,7 +177,7 @@ namespace Aquamarine {
         struct SMotionEvent {
             uint32_t                  timeMs  = 0;
             int32_t                   touchID = 0;
-            Hyprutils::Math::Vector2D pos;
+            Abyssutils::Math::Vector2D pos;
         };
 
         struct SCancelEvent {
@@ -186,12 +186,12 @@ namespace Aquamarine {
         };
 
         struct {
-            Hyprutils::Signal::CSignalT<>             destroy;
-            Hyprutils::Signal::CSignalT<SMotionEvent> move;
-            Hyprutils::Signal::CSignalT<SDownEvent>   down;
-            Hyprutils::Signal::CSignalT<SUpEvent>     up;
-            Hyprutils::Signal::CSignalT<SCancelEvent> cancel;
-            Hyprutils::Signal::CSignalT<>             frame;
+            Abyssutils::Signal::CSignalT<>             destroy;
+            Abyssutils::Signal::CSignalT<SMotionEvent> move;
+            Abyssutils::Signal::CSignalT<SDownEvent>   down;
+            Abyssutils::Signal::CSignalT<SUpEvent>     up;
+            Abyssutils::Signal::CSignalT<SCancelEvent> cancel;
+            Abyssutils::Signal::CSignalT<>             frame;
         } events;
     };
 
@@ -205,33 +205,33 @@ namespace Aquamarine {
         virtual const std::string& getName() = 0;
 
         enum eSwitchType : uint32_t {
-            AQ_SWITCH_TYPE_UNKNOWN = 0,
-            AQ_SWITCH_TYPE_LID,
-            AQ_SWITCH_TYPE_TABLET_MODE,
+            ABYSSAL_SWITCH_TYPE_UNKNOWN = 0,
+            ABYSSAL_SWITCH_TYPE_LID,
+            ABYSSAL_SWITCH_TYPE_TABLET_MODE,
         };
 
         struct SFireEvent {
             uint32_t    timeMs = 0;
-            eSwitchType type   = AQ_SWITCH_TYPE_UNKNOWN;
+            eSwitchType type   = ABYSSAL_SWITCH_TYPE_UNKNOWN;
             bool        enable = false;
         };
 
         struct {
-            Hyprutils::Signal::CSignalT<>           destroy;
-            Hyprutils::Signal::CSignalT<SFireEvent> fire;
+            Abyssutils::Signal::CSignalT<>           destroy;
+            Abyssutils::Signal::CSignalT<SFireEvent> fire;
         } events;
     };
 
     enum eTabletToolAxes : uint32_t {
-        AQ_TABLET_TOOL_AXIS_X        = (1 << 0),
-        AQ_TABLET_TOOL_AXIS_Y        = (1 << 1),
-        AQ_TABLET_TOOL_AXIS_DISTANCE = (1 << 2),
-        AQ_TABLET_TOOL_AXIS_PRESSURE = (1 << 3),
-        AQ_TABLET_TOOL_AXIS_TILT_X   = (1 << 4),
-        AQ_TABLET_TOOL_AXIS_TILT_Y   = (1 << 5),
-        AQ_TABLET_TOOL_AXIS_ROTATION = (1 << 6),
-        AQ_TABLET_TOOL_AXIS_SLIDER   = (1 << 7),
-        AQ_TABLET_TOOL_AXIS_WHEEL    = (1 << 8),
+        ABYSSAL_TABLET_TOOL_AXIS_X        = (1 << 0),
+        ABYSSAL_TABLET_TOOL_AXIS_Y        = (1 << 1),
+        ABYSSAL_TABLET_TOOL_AXIS_DISTANCE = (1 << 2),
+        ABYSSAL_TABLET_TOOL_AXIS_PRESSURE = (1 << 3),
+        ABYSSAL_TABLET_TOOL_AXIS_TILT_X   = (1 << 4),
+        ABYSSAL_TABLET_TOOL_AXIS_TILT_Y   = (1 << 5),
+        ABYSSAL_TABLET_TOOL_AXIS_ROTATION = (1 << 6),
+        ABYSSAL_TABLET_TOOL_AXIS_SLIDER   = (1 << 7),
+        ABYSSAL_TABLET_TOOL_AXIS_WHEEL    = (1 << 8),
     };
 
     class ITablet {
@@ -244,48 +244,48 @@ namespace Aquamarine {
         virtual const std::string& getName() = 0;
 
         uint16_t                   usbVendorID = 0, usbProductID = 0;
-        Hyprutils::Math::Vector2D  physicalSize; // mm
+        Abyssutils::Math::Vector2D  physicalSize; // mm
         std::vector<std::string>   paths;
 
         struct SAxisEvent {
-            Hyprutils::Memory::CSharedPointer<ITabletTool> tool;
+            Abyssutils::Memory::CSharedPointer<ITabletTool> tool;
 
             uint32_t                                       timeMs = 0, updatedAxes = 0;
-            Hyprutils::Math::Vector2D                      absolute;
-            Hyprutils::Math::Vector2D                      delta;
-            Hyprutils::Math::Vector2D                      tilt;
+            Abyssutils::Math::Vector2D                      absolute;
+            Abyssutils::Math::Vector2D                      delta;
+            Abyssutils::Math::Vector2D                      tilt;
             double                                         pressure = 0.0, distance = 0.0, rotation = 0.0, slider = 0.0, wheelDelta = 0.0;
         };
 
         struct SProximityEvent {
-            Hyprutils::Memory::CSharedPointer<ITabletTool> tool;
+            Abyssutils::Memory::CSharedPointer<ITabletTool> tool;
 
             uint32_t                                       timeMs = 0;
-            Hyprutils::Math::Vector2D                      absolute;
+            Abyssutils::Math::Vector2D                      absolute;
             bool                                           in = false;
         };
 
         struct STipEvent {
-            Hyprutils::Memory::CSharedPointer<ITabletTool> tool;
+            Abyssutils::Memory::CSharedPointer<ITabletTool> tool;
 
             uint32_t                                       timeMs = 0;
-            Hyprutils::Math::Vector2D                      absolute;
+            Abyssutils::Math::Vector2D                      absolute;
             bool                                           down = false;
         };
 
         struct SButtonEvent {
-            Hyprutils::Memory::CSharedPointer<ITabletTool> tool;
+            Abyssutils::Memory::CSharedPointer<ITabletTool> tool;
 
             uint32_t                                       timeMs = 0, button = 0;
             bool                                           down = false;
         };
 
         struct {
-            Hyprutils::Signal::CSignalT<SAxisEvent>      axis;
-            Hyprutils::Signal::CSignalT<SProximityEvent> proximity;
-            Hyprutils::Signal::CSignalT<STipEvent>       tip;
-            Hyprutils::Signal::CSignalT<SButtonEvent>    button;
-            Hyprutils::Signal::CSignalT<>                destroy;
+            Abyssutils::Signal::CSignalT<SAxisEvent>      axis;
+            Abyssutils::Signal::CSignalT<SProximityEvent> proximity;
+            Abyssutils::Signal::CSignalT<STipEvent>       tip;
+            Abyssutils::Signal::CSignalT<SButtonEvent>    button;
+            Abyssutils::Signal::CSignalT<>                destroy;
         } events;
     };
 
@@ -300,33 +300,33 @@ namespace Aquamarine {
         virtual const std::string&    getName() = 0;
 
         enum eTabletToolType : uint32_t {
-            AQ_TABLET_TOOL_TYPE_INVALID = 0,
-            AQ_TABLET_TOOL_TYPE_PEN,
-            AQ_TABLET_TOOL_TYPE_ERASER,
-            AQ_TABLET_TOOL_TYPE_BRUSH,
-            AQ_TABLET_TOOL_TYPE_PENCIL,
-            AQ_TABLET_TOOL_TYPE_AIRBRUSH,
-            AQ_TABLET_TOOL_TYPE_MOUSE,
-            AQ_TABLET_TOOL_TYPE_LENS,
-            AQ_TABLET_TOOL_TYPE_TOTEM,
+            ABYSSAL_TABLET_TOOL_TYPE_INVALID = 0,
+            ABYSSAL_TABLET_TOOL_TYPE_PEN,
+            ABYSSAL_TABLET_TOOL_TYPE_ERASER,
+            ABYSSAL_TABLET_TOOL_TYPE_BRUSH,
+            ABYSSAL_TABLET_TOOL_TYPE_PENCIL,
+            ABYSSAL_TABLET_TOOL_TYPE_AIRBRUSH,
+            ABYSSAL_TABLET_TOOL_TYPE_MOUSE,
+            ABYSSAL_TABLET_TOOL_TYPE_LENS,
+            ABYSSAL_TABLET_TOOL_TYPE_TOTEM,
         };
 
-        eTabletToolType type   = AQ_TABLET_TOOL_TYPE_INVALID;
+        eTabletToolType type   = ABYSSAL_TABLET_TOOL_TYPE_INVALID;
         uint64_t        serial = 0, id = 0;
 
         enum eTabletToolCapabilities : uint32_t {
-            AQ_TABLET_TOOL_CAPABILITY_TILT     = (1 << 0),
-            AQ_TABLET_TOOL_CAPABILITY_PRESSURE = (1 << 1),
-            AQ_TABLET_TOOL_CAPABILITY_DISTANCE = (1 << 2),
-            AQ_TABLET_TOOL_CAPABILITY_ROTATION = (1 << 3),
-            AQ_TABLET_TOOL_CAPABILITY_SLIDER   = (1 << 4),
-            AQ_TABLET_TOOL_CAPABILITY_WHEEL    = (1 << 5),
+            ABYSSAL_TABLET_TOOL_CAPABILITY_TILT     = (1 << 0),
+            ABYSSAL_TABLET_TOOL_CAPABILITY_PRESSURE = (1 << 1),
+            ABYSSAL_TABLET_TOOL_CAPABILITY_DISTANCE = (1 << 2),
+            ABYSSAL_TABLET_TOOL_CAPABILITY_ROTATION = (1 << 3),
+            ABYSSAL_TABLET_TOOL_CAPABILITY_SLIDER   = (1 << 4),
+            ABYSSAL_TABLET_TOOL_CAPABILITY_WHEEL    = (1 << 5),
         };
 
         uint32_t capabilities = 0; // enum eTabletToolCapabilities
 
         struct {
-            Hyprutils::Signal::CSignalT<> destroy;
+            Abyssutils::Signal::CSignalT<> destroy;
         } events;
     };
 
@@ -347,7 +347,7 @@ namespace Aquamarine {
         uint16_t                                                        buttons = 0, rings = 0, strips = 0;
 
         std::vector<std::string>                                        paths;
-        std::vector<Hyprutils::Memory::CSharedPointer<STabletPadGroup>> groups;
+        std::vector<Abyssutils::Memory::CSharedPointer<STabletPadGroup>> groups;
 
         //
 
@@ -358,18 +358,18 @@ namespace Aquamarine {
         };
 
         enum eTabletPadRingSource : uint16_t {
-            AQ_TABLET_PAD_RING_SOURCE_UNKNOWN = 0,
-            AQ_TABLET_PAD_RING_SOURCE_FINGER,
+            ABYSSAL_TABLET_PAD_RING_SOURCE_UNKNOWN = 0,
+            ABYSSAL_TABLET_PAD_RING_SOURCE_FINGER,
         };
 
         enum eTabletPadStripSource : uint16_t {
-            AQ_TABLET_PAD_STRIP_SOURCE_UNKNOWN = 0,
-            AQ_TABLET_PAD_STRIP_SOURCE_FINGER,
+            ABYSSAL_TABLET_PAD_STRIP_SOURCE_UNKNOWN = 0,
+            ABYSSAL_TABLET_PAD_STRIP_SOURCE_FINGER,
         };
 
         struct SRingEvent {
             uint32_t             timeMs = 0;
-            eTabletPadRingSource source = AQ_TABLET_PAD_RING_SOURCE_UNKNOWN;
+            eTabletPadRingSource source = ABYSSAL_TABLET_PAD_RING_SOURCE_UNKNOWN;
             uint16_t             ring   = 0;
             double               pos    = 0.0;
             uint16_t             mode   = 0;
@@ -377,18 +377,18 @@ namespace Aquamarine {
 
         struct SStripEvent {
             uint32_t              timeMs = 0;
-            eTabletPadStripSource source = AQ_TABLET_PAD_STRIP_SOURCE_UNKNOWN;
+            eTabletPadStripSource source = ABYSSAL_TABLET_PAD_STRIP_SOURCE_UNKNOWN;
             uint16_t              strip  = 0;
             double                pos    = 0.0;
             uint16_t              mode   = 0;
         };
 
         struct {
-            Hyprutils::Signal::CSignalT<>             destroy;
-            Hyprutils::Signal::CSignalT<SButtonEvent> button;
-            Hyprutils::Signal::CSignalT<SRingEvent>   ring;
-            Hyprutils::Signal::CSignalT<SStripEvent>  strip;
-            Hyprutils::Signal::CSignalT<>             attach;
+            Abyssutils::Signal::CSignalT<>             destroy;
+            Abyssutils::Signal::CSignalT<SButtonEvent> button;
+            Abyssutils::Signal::CSignalT<SRingEvent>   ring;
+            Abyssutils::Signal::CSignalT<SStripEvent>  strip;
+            Abyssutils::Signal::CSignalT<>             attach;
         } events;
     };
 }

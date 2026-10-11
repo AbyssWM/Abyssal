@@ -1,8 +1,8 @@
 #pragma once
 
-#include <aquamarine/backend/DRM.hpp>
+#include <abyssal/backend/DRM.hpp>
 
-namespace Aquamarine {
+namespace Abyssal {
     bool  getDRMConnectorProps(int fd, uint32_t id, SDRMConnector::UDRMConnectorProps* out);
     bool  getDRMConnectorColorspace(int fd, uint32_t id, SDRMConnector::UDRMConnectorColorspace* out);
     bool  getDRMCRTCProps(int fd, uint32_t id, SDRMCRTC::UDRMCRTCProps* out);

@@ -1,33 +1,33 @@
-#include <aquamarine/buffer/Buffer.hpp>
+#include <abyssal/buffer/Buffer.hpp>
 #include "Shared.hpp"
 
-using namespace Aquamarine;
+using namespace Abyssal;
 
-SDMABUFAttrs Aquamarine::IBuffer::dmabuf() {
+SDMABUFAttrs Abyssal::IBuffer::dmabuf() {
     return SDMABUFAttrs{};
 }
 
-SSHMAttrs Aquamarine::IBuffer::shm() {
+SSHMAttrs Abyssal::IBuffer::shm() {
     return SSHMAttrs{};
 }
 
-std::tuple<uint8_t*, uint32_t, size_t> Aquamarine::IBuffer::beginDataPtr(uint32_t flags) {
+std::tuple<uint8_t*, uint32_t, size_t> Abyssal::IBuffer::beginDataPtr(uint32_t flags) {
     return {nullptr, 0, 0};
 }
 
-void Aquamarine::IBuffer::endDataPtr() {
+void Abyssal::IBuffer::endDataPtr() {
     ; // empty
 }
 
-void Aquamarine::IBuffer::sendRelease() {
+void Abyssal::IBuffer::sendRelease() {
     ;
 }
 
-void Aquamarine::IBuffer::lock() {
+void Abyssal::IBuffer::lock() {
     locks++;
 }
 
-void Aquamarine::IBuffer::unlock() {
+void Abyssal::IBuffer::unlock() {
     locks--;
 
     ASSERT(locks >= 0);
@@ -36,16 +36,16 @@ void Aquamarine::IBuffer::unlock() {
         sendRelease();
 }
 
-bool Aquamarine::IBuffer::locked() {
+bool Abyssal::IBuffer::locked() {
     return locks;
 }
 
-void Aquamarine::IBuffer::backendPin() {
+void Abyssal::IBuffer::backendPin() {
     backendPins++;
     lockedByBackend = true;
 }
 
-void Aquamarine::IBuffer::backendUnpin() {
+void Abyssal::IBuffer::backendUnpin() {
     ASSERT(backendPins > 0);
 
     if (backendPins == 0)
@@ -59,6 +59,6 @@ void Aquamarine::IBuffer::backendUnpin() {
     events.backendRelease.emit();
 }
 
-uint32_t Aquamarine::IBuffer::backendPinCount() const {
+uint32_t Abyssal::IBuffer::backendPinCount() const {
     return backendPins;
 }

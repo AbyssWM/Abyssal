@@ -1,6 +1,6 @@
 #pragma once
 
-#include <aquamarine/backend/DRM.hpp>
+#include <abyssal/backend/DRM.hpp>
 #include "FormatUtils.hpp"
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -14,7 +14,7 @@
 #include <vector>
 #include <span>
 
-namespace Aquamarine {
+namespace Abyssal {
 
     class CGBMAllocator;
 
@@ -43,24 +43,24 @@ namespace Aquamarine {
 
     class CDRMRendererBufferInputAttachment : public IAttachment {
       public:
-        CDRMRendererBufferInputAttachment(Hyprutils::Memory::CWeakPointer<CDRMRenderer> renderer_, CGLTex&& tex, std::vector<uint8_t> intermediateBuf_);
+        CDRMRendererBufferInputAttachment(Abyssutils::Memory::CWeakPointer<CDRMRenderer> renderer_, CGLTex&& tex, std::vector<uint8_t> intermediateBuf_);
         virtual ~CDRMRendererBufferInputAttachment();
 
-        Hyprutils::Memory::CUniquePointer<CGLTex>     tex;
+        Abyssutils::Memory::CUniquePointer<CGLTex>     tex;
         std::vector<uint8_t>                          intermediateBuf;
 
-        Hyprutils::Memory::CWeakPointer<CDRMRenderer> renderer;
+        Abyssutils::Memory::CWeakPointer<CDRMRenderer> renderer;
     };
 
     class CDRMRendererBufferOutputAttachment : public IAttachment {
       public:
-        CDRMRendererBufferOutputAttachment(Hyprutils::Memory::CWeakPointer<CDRMRenderer> renderer_, EGLImageKHR image, GLuint fbo_, GLuint rbo_);
+        CDRMRendererBufferOutputAttachment(Abyssutils::Memory::CWeakPointer<CDRMRenderer> renderer_, EGLImageKHR image, GLuint fbo_, GLuint rbo_);
         virtual ~CDRMRendererBufferOutputAttachment();
 
         EGLImageKHR                                   eglImage = nullptr;
         GLuint                                        fbo = 0, rbo = 0;
 
-        Hyprutils::Memory::CWeakPointer<CDRMRenderer> renderer;
+        Abyssutils::Memory::CWeakPointer<CDRMRenderer> renderer;
     };
 
     // CEglContextGuard is a RAII abstraction for the EGL context.
@@ -90,9 +90,9 @@ namespace Aquamarine {
       public:
         ~CDRMRenderer();
 
-        static Hyprutils::Memory::CSharedPointer<CDRMRenderer> attempt(Hyprutils::Memory::CSharedPointer<CBackend> backend_, int drmFD);
-        static Hyprutils::Memory::CSharedPointer<CDRMRenderer> attempt(Hyprutils::Memory::CSharedPointer<CBackend>      backend_,
-                                                                       Hyprutils::Memory::CSharedPointer<CGBMAllocator> allocator_);
+        static Abyssutils::Memory::CSharedPointer<CDRMRenderer> attempt(Abyssutils::Memory::CSharedPointer<CBackend> backend_, int drmFD);
+        static Abyssutils::Memory::CSharedPointer<CDRMRenderer> attempt(Abyssutils::Memory::CSharedPointer<CBackend>      backend_,
+                                                                       Abyssutils::Memory::CSharedPointer<CGBMAllocator> allocator_);
 
         int                                                    drmFD = -1;
 
@@ -101,8 +101,8 @@ namespace Aquamarine {
             std::optional<int> syncFD;
         };
 
-        SBlitResult blit(Hyprutils::Memory::CSharedPointer<IBuffer> from, Hyprutils::Memory::CSharedPointer<IBuffer> to,
-                         Hyprutils::Memory::CSharedPointer<CDRMRenderer> primaryRenderer, int waitFD = -1);
+        SBlitResult blit(Abyssutils::Memory::CSharedPointer<IBuffer> from, Abyssutils::Memory::CSharedPointer<IBuffer> to,
+                         Abyssutils::Memory::CSharedPointer<CDRMRenderer> primaryRenderer, int waitFD = -1);
         // can't be a SP<> because we call it from buf's ctor...
         void clearBuffer(IBuffer* buf);
 
@@ -153,10 +153,10 @@ namespace Aquamarine {
             int        lastBlitSyncFD = -1;
         } egl;
 
-        CGLTex                                        glTex(Hyprutils::Memory::CSharedPointer<IBuffer> buf);
-        void                                          readBuffer(Hyprutils::Memory::CSharedPointer<IBuffer> buf, std::span<uint8_t> out);
+        CGLTex                                        glTex(Abyssutils::Memory::CSharedPointer<IBuffer> buf);
+        void                                          readBuffer(Abyssutils::Memory::CSharedPointer<IBuffer> buf, std::span<uint8_t> out);
 
-        Hyprutils::Memory::CWeakPointer<CDRMRenderer> self;
+        Abyssutils::Memory::CWeakPointer<CDRMRenderer> self;
         std::vector<SGLFormat>                        formats;
 
       private:
@@ -177,7 +177,7 @@ namespace Aquamarine {
         void                                                  useProgram(GLuint prog);
         GLuint                                                m_currentProgram = 0;
 
-        Hyprutils::Memory::CWeakPointer<CBackend>             backend;
+        Abyssutils::Memory::CWeakPointer<CBackend>             backend;
 
         friend class CEglContextGuard;
         friend class CDRMRendererBufferInputAttachment;

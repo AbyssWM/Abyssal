@@ -1,14 +1,14 @@
-#include <aquamarine/output/Output.hpp>
-#include <aquamarine/backend/Backend.hpp>
-#include <hyprutils/memory/SharedPtr.hpp>
+#include <abyssal/output/Output.hpp>
+#include <abyssal/backend/Backend.hpp>
+#include <abyssutils/memory/SharedPtr.hpp>
 #include <cerrno>
 #include <fcntl.h>
 #include <unistd.h>
 #include "OutputTiming.hpp"
 #include "shared.hpp"
 
-using namespace Aquamarine;
-using namespace Hyprutils::Memory;
+using namespace Abyssal;
+using namespace Abyssutils::Memory;
 
 class CTestOutput : public IOutput {
   public:
@@ -47,7 +47,7 @@ class CTestBuffer : public IBuffer {
         return BUFFER_TYPE_MISC;
     }
 
-    virtual void update(const Hyprutils::Math::CRegion& damage) {
+    virtual void update(const Abyssutils::Math::CRegion& damage) {
         ;
     }
 
@@ -86,18 +86,18 @@ int main() {
 
     COutputState outputState;
     outputState.setEnabled(true);
-    outputState.addDamage(Hyprutils::Math::CRegion{0, 0, 10, 10});
+    outputState.addDamage(Abyssutils::Math::CRegion{0, 0, 10, 10});
     const auto FIRST_SNAPSHOT = outputState.snapshot();
 
     outputState.setEnabled(false);
-    outputState.addDamage(Hyprutils::Math::CRegion{20, 20, 10, 10});
+    outputState.addDamage(Abyssutils::Math::CRegion{20, 20, 10, 10});
     EXPECT(FIRST_SNAPSHOT.state().enabled, true);
     EXPECT(FIRST_SNAPSHOT.state().damage.empty(), false);
 
     outputState.consume(FIRST_SNAPSHOT);
     EXPECT(outputState.state().enabled, false);
-    EXPECT(!!(outputState.state().committed & COutputState::AQ_OUTPUT_STATE_ENABLED), true);
-    EXPECT(!!(outputState.state().committed & COutputState::AQ_OUTPUT_STATE_DAMAGE), true);
+    EXPECT(!!(outputState.state().committed & COutputState::ABYSSAL_OUTPUT_STATE_ENABLED), true);
+    EXPECT(!!(outputState.state().committed & COutputState::ABYSSAL_OUTPUT_STATE_DAMAGE), true);
     EXPECT(outputState.state().damage.empty(), false);
 
     const auto SECOND_SNAPSHOT = outputState.snapshot();
@@ -107,13 +107,13 @@ int main() {
 
     COutputState retryState;
     retryState.setFormat(DRM_FORMAT_XRGB8888);
-    retryState.addDamage(Hyprutils::Math::CRegion{0, 0, 20, 20});
+    retryState.addDamage(Abyssutils::Math::CRegion{0, 0, 20, 20});
     const auto RETRY_SNAPSHOT = retryState.snapshot();
     retryState.consume(RETRY_SNAPSHOT);
     EXPECT(retryState.state().committed, 0U);
     retryState.rearm(RETRY_SNAPSHOT);
-    EXPECT(!!(retryState.state().committed & COutputState::AQ_OUTPUT_STATE_FORMAT), true);
-    EXPECT(!!(retryState.state().committed & COutputState::AQ_OUTPUT_STATE_DAMAGE), true);
+    EXPECT(!!(retryState.state().committed & COutputState::ABYSSAL_OUTPUT_STATE_FORMAT), true);
+    EXPECT(!!(retryState.state().committed & COutputState::ABYSSAL_OUTPUT_STATE_DAMAGE), true);
     EXPECT(retryState.state().damage.empty(), false);
 
     const auto STALE_RETRY_SNAPSHOT = retryState.snapshot();
@@ -127,8 +127,8 @@ int main() {
     const auto PARTIAL_SNAPSHOT = outputState.snapshot();
     outputState.setAdaptiveSync(false);
     outputState.consume(PARTIAL_SNAPSHOT);
-    EXPECT(!!(outputState.state().committed & COutputState::AQ_OUTPUT_STATE_FORMAT), false);
-    EXPECT(!!(outputState.state().committed & COutputState::AQ_OUTPUT_STATE_ADAPTIVE_SYNC), true);
+    EXPECT(!!(outputState.state().committed & COutputState::ABYSSAL_OUTPUT_STATE_FORMAT), false);
+    EXPECT(!!(outputState.state().committed & COutputState::ABYSSAL_OUTPUT_STATE_ADAPTIVE_SYNC), true);
 
     int pipeFDs[2] = {-1, -1};
     EXPECT(pipe(pipeFDs), 0);
@@ -145,7 +145,7 @@ int main() {
 
     output.state->setEnabled(true);
     EXPECT(output.test(), true);
-    EXPECT(!!(output.state->state().committed & COutputState::AQ_OUTPUT_STATE_ENABLED), true);
+    EXPECT(!!(output.state->state().committed & COutputState::ABYSSAL_OUTPUT_STATE_ENABLED), true);
 
     EXPECT(output.hasCursorPlane(), false);
     EXPECT(output.nextVBlank().has_value(), false);
@@ -157,7 +157,7 @@ int main() {
 
     bool                         resultFired        = false;
     uint64_t                     resultID           = 0;
-    IOutput::eOutputCommitStatus resultStatus       = IOutput::AQ_OUTPUT_COMMIT_FAILED;
+    IOutput::eOutputCommitStatus resultStatus       = IOutput::ABYSSAL_OUTPUT_COMMIT_FAILED;
     int                          resultError        = 0;
     bool                         resultMissedTarget = false;
     auto                         resultListener     = output.events.commitResult.listen([&](const IOutput::SCommitResult& event) {
@@ -175,13 +175,13 @@ int main() {
 
     output.events.commitResult.emit({
         .id           = 42,
-        .status       = IOutput::AQ_OUTPUT_COMMIT_SUBMITTED,
+        .status       = IOutput::ABYSSAL_OUTPUT_COMMIT_SUBMITTED,
         .missedTarget = true,
     });
 
     EXPECT(resultFired, true);
     EXPECT(resultID, 42U);
-    EXPECT(resultStatus, IOutput::AQ_OUTPUT_COMMIT_SUBMITTED);
+    EXPECT(resultStatus, IOutput::ABYSSAL_OUTPUT_COMMIT_SUBMITTED);
     EXPECT(resultError, 0);
     EXPECT(resultMissedTarget, true);
 

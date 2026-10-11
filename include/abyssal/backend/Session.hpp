@@ -1,8 +1,8 @@
 #pragma once
 
 #include <sys/types.h>
-#include <hyprutils/signal/Signal.hpp>
-#include <hyprutils/memory/SharedPtr.hpp>
+#include <abyssutils/signal/Signal.hpp>
+#include <abyssutils/memory/SharedPtr.hpp>
 #include "../input/Input.hpp"
 #include <vector>
 
@@ -15,7 +15,7 @@ struct libinput_event;
 struct libinput_device;
 struct libinput_tablet_tool;
 
-namespace Aquamarine {
+namespace Abyssal {
     class CBackend;
     class CSession;
     class CLibinputDevice;
@@ -23,10 +23,10 @@ namespace Aquamarine {
 
     class CSessionDevice {
       public:
-        CSessionDevice(Hyprutils::Memory::CSharedPointer<CSession> session_, const std::string& path_);
+        CSessionDevice(Abyssutils::Memory::CSharedPointer<CSession> session_, const std::string& path_);
         ~CSessionDevice();
 
-        static Hyprutils::Memory::CSharedPointer<CSessionDevice> openIfKMS(Hyprutils::Memory::CSharedPointer<CSession> session_, const std::string& path_);
+        static Abyssutils::Memory::CSharedPointer<CSessionDevice> openIfKMS(Abyssutils::Memory::CSharedPointer<CSession> session_, const std::string& path_);
 
         bool                                                     supportsKMS();
         void                                                     resolveMatchingRenderNode(udev_device* cardDevice);
@@ -37,12 +37,12 @@ namespace Aquamarine {
         std::string                                              path;
 
         enum eChangeEventType : uint32_t {
-            AQ_SESSION_EVENT_CHANGE_HOTPLUG = 0,
-            AQ_SESSION_EVENT_CHANGE_LEASE,
+            ABYSSAL_SESSION_EVENT_CHANGE_HOTPLUG = 0,
+            ABYSSAL_SESSION_EVENT_CHANGE_LEASE,
         };
 
         struct SChangeEvent {
-            eChangeEventType type = AQ_SESSION_EVENT_CHANGE_HOTPLUG;
+            eChangeEventType type = ABYSSAL_SESSION_EVENT_CHANGE_HOTPLUG;
 
             struct {
                 uint32_t connectorID = 0, propID = 0;
@@ -50,19 +50,19 @@ namespace Aquamarine {
         };
 
         struct {
-            Hyprutils::Signal::CSignalT<SChangeEvent> change;
-            Hyprutils::Signal::CSignalT<>             remove;
+            Abyssutils::Signal::CSignalT<SChangeEvent> change;
+            Abyssutils::Signal::CSignalT<>             remove;
         } events;
 
         int renderNodeFd = -1;
 
       private:
-        Hyprutils::Memory::CWeakPointer<CSession> session;
+        Abyssutils::Memory::CWeakPointer<CSession> session;
     };
 
     class CLibinputKeyboard : public IKeyboard {
       public:
-        CLibinputKeyboard(Hyprutils::Memory::CSharedPointer<CLibinputDevice> dev);
+        CLibinputKeyboard(Abyssutils::Memory::CSharedPointer<CLibinputDevice> dev);
         virtual ~CLibinputKeyboard() {
             ;
         }
@@ -72,14 +72,14 @@ namespace Aquamarine {
         virtual void               updateLEDs(uint32_t leds);
 
       private:
-        Hyprutils::Memory::CWeakPointer<CLibinputDevice> device;
+        Abyssutils::Memory::CWeakPointer<CLibinputDevice> device;
 
         friend class CLibinputDevice;
     };
 
     class CLibinputMouse : public IPointer {
       public:
-        CLibinputMouse(Hyprutils::Memory::CSharedPointer<CLibinputDevice> dev);
+        CLibinputMouse(Abyssutils::Memory::CSharedPointer<CLibinputDevice> dev);
         virtual ~CLibinputMouse() {
             ;
         }
@@ -88,14 +88,14 @@ namespace Aquamarine {
         virtual const std::string& getName();
 
       private:
-        Hyprutils::Memory::CWeakPointer<CLibinputDevice> device;
+        Abyssutils::Memory::CWeakPointer<CLibinputDevice> device;
 
         friend class CLibinputDevice;
     };
 
     class CLibinputTouch : public ITouch {
       public:
-        CLibinputTouch(Hyprutils::Memory::CSharedPointer<CLibinputDevice> dev);
+        CLibinputTouch(Abyssutils::Memory::CSharedPointer<CLibinputDevice> dev);
         virtual ~CLibinputTouch() {
             ;
         }
@@ -104,14 +104,14 @@ namespace Aquamarine {
         virtual const std::string& getName();
 
       private:
-        Hyprutils::Memory::CWeakPointer<CLibinputDevice> device;
+        Abyssutils::Memory::CWeakPointer<CLibinputDevice> device;
 
         friend class CLibinputDevice;
     };
 
     class CLibinputSwitch : public ISwitch {
       public:
-        CLibinputSwitch(Hyprutils::Memory::CSharedPointer<CLibinputDevice> dev);
+        CLibinputSwitch(Abyssutils::Memory::CSharedPointer<CLibinputDevice> dev);
         virtual ~CLibinputSwitch() {
             ;
         }
@@ -119,18 +119,18 @@ namespace Aquamarine {
         virtual libinput_device*   getLibinputHandle();
         virtual const std::string& getName();
 
-        eSwitchType                type  = AQ_SWITCH_TYPE_UNKNOWN;
+        eSwitchType                type  = ABYSSAL_SWITCH_TYPE_UNKNOWN;
         bool                       state = false;
 
       private:
-        Hyprutils::Memory::CWeakPointer<CLibinputDevice> device;
+        Abyssutils::Memory::CWeakPointer<CLibinputDevice> device;
 
         friend class CLibinputDevice;
     };
 
     class CLibinputTablet : public ITablet {
       public:
-        CLibinputTablet(Hyprutils::Memory::CSharedPointer<CLibinputDevice> dev);
+        CLibinputTablet(Abyssutils::Memory::CSharedPointer<CLibinputDevice> dev);
         virtual ~CLibinputTablet() {
             ;
         }
@@ -139,14 +139,14 @@ namespace Aquamarine {
         virtual const std::string& getName();
 
       private:
-        Hyprutils::Memory::CWeakPointer<CLibinputDevice> device;
+        Abyssutils::Memory::CWeakPointer<CLibinputDevice> device;
 
         friend class CLibinputDevice;
     };
 
     class CLibinputTabletTool : public ITabletTool {
       public:
-        CLibinputTabletTool(Hyprutils::Memory::CSharedPointer<CLibinputDevice> dev, libinput_tablet_tool* tool);
+        CLibinputTabletTool(Abyssutils::Memory::CSharedPointer<CLibinputDevice> dev, libinput_tablet_tool* tool);
         virtual ~CLibinputTabletTool();
 
         virtual libinput_device*      getLibinputHandle();
@@ -154,7 +154,7 @@ namespace Aquamarine {
         virtual const std::string&    getName();
 
       private:
-        Hyprutils::Memory::CWeakPointer<CLibinputDevice> device;
+        Abyssutils::Memory::CWeakPointer<CLibinputDevice> device;
         libinput_tablet_tool*                            libinputTool = nullptr;
 
         friend class CLibinputDevice;
@@ -162,63 +162,63 @@ namespace Aquamarine {
 
     class CLibinputTabletPad : public ITabletPad {
       public:
-        CLibinputTabletPad(Hyprutils::Memory::CSharedPointer<CLibinputDevice> dev);
+        CLibinputTabletPad(Abyssutils::Memory::CSharedPointer<CLibinputDevice> dev);
         virtual ~CLibinputTabletPad();
 
         virtual libinput_device*   getLibinputHandle();
         virtual const std::string& getName();
 
       private:
-        Hyprutils::Memory::CWeakPointer<CLibinputDevice>               device;
+        Abyssutils::Memory::CWeakPointer<CLibinputDevice>               device;
 
-        Hyprutils::Memory::CSharedPointer<ITabletPad::STabletPadGroup> createGroupFromID(int id);
+        Abyssutils::Memory::CSharedPointer<ITabletPad::STabletPadGroup> createGroupFromID(int id);
 
         friend class CLibinputDevice;
     };
 
     class CLibinputDevice {
       public:
-        CLibinputDevice(libinput_device* device, Hyprutils::Memory::CWeakPointer<CSession> session_);
+        CLibinputDevice(libinput_device* device, Abyssutils::Memory::CWeakPointer<CSession> session_);
         ~CLibinputDevice();
 
         void                                                                init();
 
         libinput_device*                                                    device;
-        Hyprutils::Memory::CWeakPointer<CLibinputDevice>                    self;
-        Hyprutils::Memory::CWeakPointer<CSession>                           session;
+        Abyssutils::Memory::CWeakPointer<CLibinputDevice>                    self;
+        Abyssutils::Memory::CWeakPointer<CSession>                           session;
         std::string                                                         name;
 
-        Hyprutils::Memory::CSharedPointer<CLibinputKeyboard>                keyboard;
-        Hyprutils::Memory::CSharedPointer<CLibinputMouse>                   mouse;
-        Hyprutils::Memory::CSharedPointer<CLibinputTouch>                   touch;
-        Hyprutils::Memory::CSharedPointer<CLibinputSwitch>                  switchy; // :)
-        Hyprutils::Memory::CSharedPointer<CLibinputTablet>                  tablet;
-        Hyprutils::Memory::CSharedPointer<CLibinputTabletPad>               tabletPad;
-        std::vector<Hyprutils::Memory::CSharedPointer<CLibinputTabletTool>> tabletTools;
+        Abyssutils::Memory::CSharedPointer<CLibinputKeyboard>                keyboard;
+        Abyssutils::Memory::CSharedPointer<CLibinputMouse>                   mouse;
+        Abyssutils::Memory::CSharedPointer<CLibinputTouch>                   touch;
+        Abyssutils::Memory::CSharedPointer<CLibinputSwitch>                  switchy; // :)
+        Abyssutils::Memory::CSharedPointer<CLibinputTablet>                  tablet;
+        Abyssutils::Memory::CSharedPointer<CLibinputTabletPad>               tabletPad;
+        std::vector<Abyssutils::Memory::CSharedPointer<CLibinputTabletTool>> tabletTools;
 
-        Hyprutils::Memory::CSharedPointer<CLibinputTabletTool>              toolFrom(libinput_tablet_tool* tool);
+        Abyssutils::Memory::CSharedPointer<CLibinputTabletTool>              toolFrom(libinput_tablet_tool* tool);
     };
 
     class CSession {
       public:
         ~CSession();
 
-        static Hyprutils::Memory::CSharedPointer<CSession>              attempt(Hyprutils::Memory::CSharedPointer<CBackend> backend_);
+        static Abyssutils::Memory::CSharedPointer<CSession>              attempt(Abyssutils::Memory::CSharedPointer<CBackend> backend_);
 
         bool                                                            active = true; // whether the current vt is ours
         uint32_t                                                        vt     = 0;    // 0 means unsupported
         std::string                                                     seatName;
-        Hyprutils::Memory::CWeakPointer<CSession>                       self;
+        Abyssutils::Memory::CWeakPointer<CSession>                       self;
 
-        std::vector<Hyprutils::Memory::CSharedPointer<CSessionDevice>>  sessionDevices;
-        std::vector<Hyprutils::Memory::CSharedPointer<CLibinputDevice>> libinputDevices;
+        std::vector<Abyssutils::Memory::CSharedPointer<CSessionDevice>>  sessionDevices;
+        std::vector<Abyssutils::Memory::CSharedPointer<CLibinputDevice>> libinputDevices;
 
         udev*                                                           udevHandle     = nullptr;
         udev_monitor*                                                   udevMonitor    = nullptr;
         libseat*                                                        libseatHandle  = nullptr;
         libinput*                                                       libinputHandle = nullptr;
 
-        std::vector<Hyprutils::Memory::CSharedPointer<SPollFD>>         pollFDs();
+        std::vector<Abyssutils::Memory::CSharedPointer<SPollFD>>         pollFDs();
         void                                                            dispatchPendingEventsAsync();
         bool                                                            switchVT(uint32_t vt);
         void                                                            onReady();
@@ -228,14 +228,14 @@ namespace Aquamarine {
         };
 
         struct {
-            Hyprutils::Signal::CSignalT<>                 changeActive;
-            Hyprutils::Signal::CSignalT<SAddDrmCardEvent> addDrmCard;
-            Hyprutils::Signal::CSignalT<>                 destroy;
+            Abyssutils::Signal::CSignalT<>                 changeActive;
+            Abyssutils::Signal::CSignalT<SAddDrmCardEvent> addDrmCard;
+            Abyssutils::Signal::CSignalT<>                 destroy;
         } events;
 
       private:
-        Hyprutils::Memory::CWeakPointer<CBackend>               backend;
-        std::vector<Hyprutils::Memory::CSharedPointer<SPollFD>> polls;
+        Abyssutils::Memory::CWeakPointer<CBackend>               backend;
+        std::vector<Abyssutils::Memory::CSharedPointer<SPollFD>> polls;
 
         void                                                    dispatchUdevEvents();
         void                                                    dispatchLibinputEvents();

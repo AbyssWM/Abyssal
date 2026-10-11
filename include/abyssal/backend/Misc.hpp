@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace Aquamarine {
+namespace Abyssal {
     struct SGLFormat {
         uint32_t drmFormat = 0;
         uint64_t modifier  = 0;

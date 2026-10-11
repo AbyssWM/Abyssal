@@ -7,29 +7,29 @@
 #include <sys/eventfd.h>
 #include <unistd.h>
 
-using namespace Aquamarine;
-using namespace Hyprutils::Memory;
-using namespace Hyprutils::OS;
+using namespace Abyssal;
+using namespace Abyssutils::Memory;
+using namespace Abyssutils::OS;
 
-Aquamarine::IDRMCommitThreadData::~IDRMCommitThreadData() {
+Abyssal::IDRMCommitThreadData::~IDRMCommitThreadData() {
     ;
 }
 
-Aquamarine::SDRMCommitThreadRequest::SDRMCommitThreadRequest()                                                 = default;
-Aquamarine::SDRMCommitThreadRequest::SDRMCommitThreadRequest(SDRMCommitThreadRequest&&)                        = default;
-Aquamarine::SDRMCommitThreadRequest& Aquamarine::SDRMCommitThreadRequest::operator=(SDRMCommitThreadRequest&&) = default;
-Aquamarine::SDRMCommitThreadRequest::~SDRMCommitThreadRequest()                                                = default;
+Abyssal::SDRMCommitThreadRequest::SDRMCommitThreadRequest()                                                 = default;
+Abyssal::SDRMCommitThreadRequest::SDRMCommitThreadRequest(SDRMCommitThreadRequest&&)                        = default;
+Abyssal::SDRMCommitThreadRequest& Abyssal::SDRMCommitThreadRequest::operator=(SDRMCommitThreadRequest&&) = default;
+Abyssal::SDRMCommitThreadRequest::~SDRMCommitThreadRequest()                                                = default;
 
-Aquamarine::IDRMCommitSubmitter::~IDRMCommitSubmitter() {
+Abyssal::IDRMCommitSubmitter::~IDRMCommitSubmitter() {
     ;
 }
 
-Aquamarine::CDRMCommitThread::SResult::SResult()                                                   = default;
-Aquamarine::CDRMCommitThread::SResult::SResult(SResult&&)                                          = default;
-Aquamarine::CDRMCommitThread::SResult& Aquamarine::CDRMCommitThread::SResult::operator=(SResult&&) = default;
-Aquamarine::CDRMCommitThread::SResult::~SResult()                                                  = default;
+Abyssal::CDRMCommitThread::SResult::SResult()                                                   = default;
+Abyssal::CDRMCommitThread::SResult::SResult(SResult&&)                                          = default;
+Abyssal::CDRMCommitThread::SResult& Abyssal::CDRMCommitThread::SResult::operator=(SResult&&) = default;
+Abyssal::CDRMCommitThread::SResult::~SResult()                                                  = default;
 
-CUniquePointer<CDRMCommitThread> Aquamarine::CDRMCommitThread::create(CUniquePointer<IDRMCommitSubmitter> submitter) {
+CUniquePointer<CDRMCommitThread> Abyssal::CDRMCommitThread::create(CUniquePointer<IDRMCommitSubmitter> submitter) {
     if (!submitter)
         return nullptr;
 
@@ -41,16 +41,16 @@ CUniquePointer<CDRMCommitThread> Aquamarine::CDRMCommitThread::create(CUniquePoi
     return thread;
 }
 
-Aquamarine::CDRMCommitThread::CDRMCommitThread(CUniquePointer<IDRMCommitSubmitter> submitter) :
+Abyssal::CDRMCommitThread::CDRMCommitThread(CUniquePointer<IDRMCommitSubmitter> submitter) :
     m_submitter(std::move(submitter)), m_completionFD(eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK)) {
     ;
 }
 
-Aquamarine::CDRMCommitThread::~CDRMCommitThread() {
+Abyssal::CDRMCommitThread::~CDRMCommitThread() {
     stop();
 }
 
-std::optional<uint64_t> Aquamarine::CDRMCommitThread::enqueue(CUniquePointer<SDRMCommitThreadRequest>&& request) {
+std::optional<uint64_t> Abyssal::CDRMCommitThread::enqueue(CUniquePointer<SDRMCommitThreadRequest>&& request) {
     if (!request || !request->data || request->id != 0 || request->ownerID == 0 || request->queueKey == 0)
         return std::nullopt;
 
@@ -78,7 +78,7 @@ std::optional<uint64_t> Aquamarine::CDRMCommitThread::enqueue(CUniquePointer<SDR
     return commitID;
 }
 
-size_t Aquamarine::CDRMCommitThread::cancelOwner(uint64_t ownerID) {
+size_t Abyssal::CDRMCommitThread::cancelOwner(uint64_t ownerID) {
     if (ownerID == 0)
         return 0;
 
@@ -103,7 +103,7 @@ size_t Aquamarine::CDRMCommitThread::cancelOwner(uint64_t ownerID) {
     for (auto& request : requests) {
         SResult result;
         result.request     = std::move(request);
-        result.status      = AQ_DRM_COMMIT_THREAD_CANCELLED;
+        result.status      = ABYSSAL_DRM_COMMIT_THREAD_CANCELLED;
         result.error       = ECANCELED;
         result.completedAt = std::chrono::steady_clock::now();
         appendResult(std::move(result));
@@ -121,7 +121,7 @@ size_t Aquamarine::CDRMCommitThread::cancelOwner(uint64_t ownerID) {
     return requests.size();
 }
 
-bool Aquamarine::CDRMCommitThread::pauseQueue(uint64_t queueKey) {
+bool Abyssal::CDRMCommitThread::pauseQueue(uint64_t queueKey) {
     if (queueKey == 0)
         return false;
 
@@ -131,7 +131,7 @@ bool Aquamarine::CDRMCommitThread::pauseQueue(uint64_t queueKey) {
     return true;
 }
 
-bool Aquamarine::CDRMCommitThread::resumeQueue(uint64_t queueKey) {
+bool Abyssal::CDRMCommitThread::resumeQueue(uint64_t queueKey) {
     if (queueKey == 0)
         return false;
 
@@ -148,7 +148,7 @@ bool Aquamarine::CDRMCommitThread::resumeQueue(uint64_t queueKey) {
     return true;
 }
 
-bool Aquamarine::CDRMCommitThread::releaseQueue(uint64_t queueKey, uint64_t commitID) {
+bool Abyssal::CDRMCommitThread::releaseQueue(uint64_t queueKey, uint64_t commitID) {
     if (queueKey == 0 || commitID == 0)
         return false;
 
@@ -165,7 +165,7 @@ bool Aquamarine::CDRMCommitThread::releaseQueue(uint64_t queueKey, uint64_t comm
     return true;
 }
 
-void Aquamarine::CDRMCommitThread::stop() {
+void Abyssal::CDRMCommitThread::stop() {
     std::lock_guard<std::mutex>                          stopLock(m_stopMutex);
 
     std::vector<CUniquePointer<SDRMCommitThreadRequest>> cancelled;
@@ -191,7 +191,7 @@ void Aquamarine::CDRMCommitThread::stop() {
     for (auto& request : cancelled) {
         SResult result;
         result.request     = std::move(request);
-        result.status      = AQ_DRM_COMMIT_THREAD_CANCELLED;
+        result.status      = ABYSSAL_DRM_COMMIT_THREAD_CANCELLED;
         result.error       = ECANCELED;
         result.completedAt = std::chrono::steady_clock::now();
         appendResult(std::move(result));
@@ -204,16 +204,16 @@ void Aquamarine::CDRMCommitThread::stop() {
     }
 }
 
-std::vector<CDRMCommitThread::SResult> Aquamarine::CDRMCommitThread::stopAndDrain() {
+std::vector<CDRMCommitThread::SResult> Abyssal::CDRMCommitThread::stopAndDrain() {
     stop();
     return drainResults();
 }
 
-int Aquamarine::CDRMCommitThread::completionFD() const {
+int Abyssal::CDRMCommitThread::completionFD() const {
     return m_completionFD.get();
 }
 
-std::vector<CDRMCommitThread::SResult> Aquamarine::CDRMCommitThread::drainResults() {
+std::vector<CDRMCommitThread::SResult> Abyssal::CDRMCommitThread::drainResults() {
     std::vector<SResult> results;
     {
         std::lock_guard<std::mutex> lock(m_resultMutex);
@@ -235,22 +235,22 @@ std::vector<CDRMCommitThread::SResult> Aquamarine::CDRMCommitThread::drainResult
     return results;
 }
 
-bool Aquamarine::CDRMCommitThread::accepting() const {
+bool Abyssal::CDRMCommitThread::accepting() const {
     std::lock_guard<std::mutex> lock(m_queueMutex);
     return !m_stopping;
 }
 
-size_t Aquamarine::CDRMCommitThread::queued() const {
+size_t Abyssal::CDRMCommitThread::queued() const {
     std::lock_guard<std::mutex> lock(m_queueMutex);
     return m_queue.size();
 }
 
-bool Aquamarine::CDRMCommitThread::submitting() const {
+bool Abyssal::CDRMCommitThread::submitting() const {
     std::lock_guard<std::mutex> lock(m_queueMutex);
     return m_activeRequest.has_value();
 }
 
-void Aquamarine::CDRMCommitThread::run() {
+void Abyssal::CDRMCommitThread::run() {
     while (true) {
         CUniquePointer<SDRMCommitThreadRequest> request;
         {
@@ -265,7 +265,7 @@ void Aquamarine::CDRMCommitThread::run() {
         const auto COMPLETED_AT  = std::chrono::steady_clock::now();
 
         SResult    result;
-        result.status       = SUBMIT_RESULT.submitted ? AQ_DRM_COMMIT_THREAD_SUBMITTED : AQ_DRM_COMMIT_THREAD_FAILED;
+        result.status       = SUBMIT_RESULT.submitted ? ABYSSAL_DRM_COMMIT_THREAD_SUBMITTED : ABYSSAL_DRM_COMMIT_THREAD_FAILED;
         result.error        = SUBMIT_RESULT.submitted ? 0 : (SUBMIT_RESULT.error > 0 ? SUBMIT_RESULT.error : EIO);
         result.missedTarget = SUBMIT_RESULT.submitted && request->targetPresentation.has_value() && COMPLETED_AT > *request->targetPresentation;
         result.completedAt  = COMPLETED_AT;
@@ -288,7 +288,7 @@ void Aquamarine::CDRMCommitThread::run() {
     }
 }
 
-CUniquePointer<SDRMCommitThreadRequest> Aquamarine::CDRMCommitThread::takeNextRequest(std::unique_lock<std::mutex>& lock) {
+CUniquePointer<SDRMCommitThreadRequest> Abyssal::CDRMCommitThread::takeNextRequest(std::unique_lock<std::mutex>& lock) {
     while (true) {
         if (m_stopping)
             return nullptr;
@@ -349,20 +349,20 @@ CUniquePointer<SDRMCommitThreadRequest> Aquamarine::CDRMCommitThread::takeNextRe
     }
 }
 
-void Aquamarine::CDRMCommitThread::appendResult(SResult&& result) {
+void Abyssal::CDRMCommitThread::appendResult(SResult&& result) {
     std::lock_guard<std::mutex> lock(m_resultMutex);
     m_results.emplace_back(std::move(result));
     signalResults();
 }
 
-void Aquamarine::CDRMCommitThread::signalResults() {
+void Abyssal::CDRMCommitThread::signalResults() {
     const uint64_t SIGNAL = 1;
     while (write(m_completionFD.get(), &SIGNAL, sizeof(SIGNAL)) < 0 && errno == EINTR) {
         ;
     }
 }
 
-std::vector<CUniquePointer<SDRMCommitThreadRequest>> Aquamarine::CDRMCommitThread::takeOwnerRequests(uint64_t ownerID) {
+std::vector<CUniquePointer<SDRMCommitThreadRequest>> Abyssal::CDRMCommitThread::takeOwnerRequests(uint64_t ownerID) {
     std::vector<CUniquePointer<SDRMCommitThreadRequest>> requests;
 
     {

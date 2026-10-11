@@ -1,4 +1,4 @@
-#include <aquamarine/backend/DRM.hpp>
+#include <abyssal/backend/DRM.hpp>
 
 extern "C" {
 #include <libseat.h>
@@ -9,8 +9,8 @@ extern "C" {
 
 #include <cstring>
 
-using namespace Aquamarine;
-using namespace Hyprutils::Memory;
+using namespace Abyssal;
+using namespace Abyssutils::Memory;
 #define SP CSharedPointer
 
 struct prop_info {
@@ -85,7 +85,7 @@ static const struct prop_info colorrange_info[] = {
 #undef INDEX
 };
 
-namespace Aquamarine {
+namespace Abyssal {
 
     static int comparePropInfo(const void* arg1, const void* arg2) {
         const char*      key  = (const char*)arg1;

@@ -4,7 +4,7 @@
 #include <format>
 #include <signal.h>
 
-namespace Aquamarine {
+namespace Abyssal {
     bool envEnabled(const std::string& env);
     bool envExplicitlyDisabled(const std::string& env);
     bool isTrace();
@@ -15,7 +15,7 @@ namespace Aquamarine {
         std::cout << std::format("\n==========================================================================================\nASSERTION FAILED! \n\n{}\n\nat: line {} in {}",    \
                                  std::format(reason, ##__VA_ARGS__), __LINE__,                                                                                                     \
                                  ([]() constexpr -> std::string { return std::string(__FILE__).substr(std::string(__FILE__).find_last_of('/') + 1); })());                         \
-        std::cout << "[Aquamarine] Assertion failed!";                                                                                                                             \
+        std::cout << "[Abyssal] Assertion failed!";                                                                                                                             \
         raise(SIGABRT);                                                                                                                                                            \
     }
 
@@ -23,7 +23,7 @@ namespace Aquamarine {
 
 #define TRACE(expr)                                                                                                                                                                \
     {                                                                                                                                                                              \
-        if (Aquamarine::isTrace()) {                                                                                                                                               \
+        if (Abyssal::isTrace()) {                                                                                                                                               \
             expr;                                                                                                                                                                  \
         }                                                                                                                                                                          \
     }

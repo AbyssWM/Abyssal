@@ -1,9 +1,9 @@
 #pragma once
 
-#include <hyprutils/memory/SharedPtr.hpp>
-#include <hyprutils/memory/WeakPtr.hpp>
-#include <hyprutils/signal/Signal.hpp>
-#include <hyprutils/cli/Logger.hpp>
+#include <abyssutils/memory/SharedPtr.hpp>
+#include <abyssutils/memory/WeakPtr.hpp>
+#include <abyssutils/signal/Signal.hpp>
+#include <abyssutils/cli/Logger.hpp>
 #include <vector>
 #include <functional>
 #include <mutex>
@@ -12,7 +12,7 @@
 #include "Misc.hpp"
 #include "Session.hpp"
 
-namespace Aquamarine {
+namespace Abyssal {
     class CLogger;
     class IOutput;
     class IPointer;
@@ -24,42 +24,42 @@ namespace Aquamarine {
     class ITabletPad;
 
     enum eBackendType : uint32_t {
-        AQ_BACKEND_WAYLAND = 0,
-        AQ_BACKEND_DRM,
-        AQ_BACKEND_HEADLESS,
-        AQ_BACKEND_NULL,
+        ABYSSAL_BACKEND_WAYLAND = 0,
+        ABYSSAL_BACKEND_DRM,
+        ABYSSAL_BACKEND_HEADLESS,
+        ABYSSAL_BACKEND_NULL,
     };
 
     enum eBackendGPUDriver : uint32_t {
-        AQ_BACKEND_GPU_DRIVER_UNKNOWN = 0,
-        AQ_BACKEND_GPU_DRIVER_INTEL,   // i915, xe
-        AQ_BACKEND_GPU_DRIVER_AMD,     // amdgpu, radeon
-        AQ_BACKEND_GPU_DRIVER_NVIDIA,  // proprietary nvidia-drm
-        AQ_BACKEND_GPU_DRIVER_NOUVEAU, // open source nouveau
-        AQ_BACKEND_GPU_DRIVER_EVDI,    // displayLink virtual driver
+        ABYSSAL_BACKEND_GPU_DRIVER_UNKNOWN = 0,
+        ABYSSAL_BACKEND_GPU_DRIVER_INTEL,   // i915, xe
+        ABYSSAL_BACKEND_GPU_DRIVER_AMD,     // amdgpu, radeon
+        ABYSSAL_BACKEND_GPU_DRIVER_NVIDIA,  // proprietary nvidia-drm
+        ABYSSAL_BACKEND_GPU_DRIVER_NOUVEAU, // open source nouveau
+        ABYSSAL_BACKEND_GPU_DRIVER_EVDI,    // displayLink virtual driver
     };
 
     enum eBackendRequestMode : uint32_t {
         /*
             Require the provided backend, will error out if it's not available.
         */
-        AQ_BACKEND_REQUEST_MANDATORY = 0,
+        ABYSSAL_BACKEND_REQUEST_MANDATORY = 0,
         /*
             Start the backend if it's available
         */
-        AQ_BACKEND_REQUEST_IF_AVAILABLE,
+        ABYSSAL_BACKEND_REQUEST_IF_AVAILABLE,
         /*
             If any IF_AVAILABLE backend fails, use this one
         */
-        AQ_BACKEND_REQUEST_FALLBACK,
+        ABYSSAL_BACKEND_REQUEST_FALLBACK,
     };
 
     enum eBackendLogLevel : uint32_t {
-        AQ_LOG_TRACE = 0,
-        AQ_LOG_DEBUG,
-        AQ_LOG_WARNING,
-        AQ_LOG_ERROR,
-        AQ_LOG_CRITICAL,
+        ABYSSAL_LOG_TRACE = 0,
+        ABYSSAL_LOG_DEBUG,
+        ABYSSAL_LOG_WARNING,
+        ABYSSAL_LOG_ERROR,
+        ABYSSAL_LOG_CRITICAL,
     };
 
     struct SBackendImplementationOptions {
@@ -71,7 +71,7 @@ namespace Aquamarine {
     struct SBackendOptions {
         explicit SBackendOptions();
         std::function<void(eBackendLogLevel, std::string)>                   logFunction;
-        Hyprutils::Memory::CSharedPointer<Hyprutils::CLI::CLoggerConnection> logConnection;
+        Abyssutils::Memory::CSharedPointer<Abyssutils::CLI::CLoggerConnection> logConnection;
     };
 
     struct SPollFD {
@@ -86,12 +86,12 @@ namespace Aquamarine {
         }
 
         enum eBackendCapabilities : uint32_t {
-            AQ_BACKEND_CAPABILITY_POINTER = (1 << 0),
+            ABYSSAL_BACKEND_CAPABILITY_POINTER = (1 << 0),
         };
 
         virtual eBackendType                                               type()                                     = 0;
         virtual bool                                                       start()                                    = 0;
-        virtual std::vector<Hyprutils::Memory::CSharedPointer<SPollFD>>    pollFDs()                                  = 0;
+        virtual std::vector<Abyssutils::Memory::CSharedPointer<SPollFD>>    pollFDs()                                  = 0;
         virtual int                                                        drmFD()                                    = 0;
         virtual bool                                                       dispatchEvents()                           = 0;
         virtual uint32_t                                                   capabilities()                             = 0;
@@ -99,10 +99,10 @@ namespace Aquamarine {
         virtual std::vector<SDRMFormat>                                    getRenderFormats()                         = 0;
         virtual std::vector<SDRMFormat>                                    getCursorFormats()                         = 0;
         virtual bool                                                       createOutput(const std::string& name = "") = 0; // "" means auto
-        virtual Hyprutils::Memory::CSharedPointer<IAllocator>              preferredAllocator()                       = 0;
+        virtual Abyssutils::Memory::CSharedPointer<IAllocator>              preferredAllocator()                       = 0;
         virtual std::vector<SDRMFormat>                                    getRenderableFormats(); // empty = use getRenderFormats
-        virtual std::vector<Hyprutils::Memory::CSharedPointer<IAllocator>> getAllocators()   = 0;
-        virtual Hyprutils::Memory::CWeakPointer<IBackendImplementation>    getPrimary()      = 0;
+        virtual std::vector<Abyssutils::Memory::CSharedPointer<IAllocator>> getAllocators()   = 0;
+        virtual Abyssutils::Memory::CWeakPointer<IBackendImplementation>    getPrimary()      = 0;
         virtual int                                                        drmRenderNodeFD() = 0;
         virtual eBackendGPUDriver                                          gpuDriver();
     };
@@ -110,7 +110,7 @@ namespace Aquamarine {
     class CBackend {
       public:
         /* Create a backend, with the provided options. May return a single or a multi-backend. */
-        static Hyprutils::Memory::CSharedPointer<CBackend> create(const std::vector<SBackendImplementationOptions>& backends, const SBackendOptions& options);
+        static Abyssutils::Memory::CSharedPointer<CBackend> create(const std::vector<SBackendImplementationOptions>& backends, const SBackendOptions& options);
 
         ~CBackend();
 
@@ -120,7 +120,7 @@ namespace Aquamarine {
         void log(eBackendLogLevel level, const std::string& msg);
 
         /* Gets all the FDs you have to poll. When any single one fires, call its onPoll */
-        std::vector<Hyprutils::Memory::CSharedPointer<SPollFD>> getPollFDs();
+        std::vector<Abyssutils::Memory::CSharedPointer<SPollFD>> getPollFDs();
 
         /* Checks if the backend has a session - iow if it's a DRM backend */
         bool hasSession();
@@ -132,13 +132,13 @@ namespace Aquamarine {
         std::vector<SDRMFormat> getPrimaryRenderFormats();
 
         /* get a vector of the backend implementations available */
-        const std::vector<Hyprutils::Memory::CSharedPointer<IBackendImplementation>>& getImplementations();
+        const std::vector<Abyssutils::Memory::CSharedPointer<IBackendImplementation>>& getImplementations();
 
         /* push an idle event to the queue */
-        void addIdleEvent(Hyprutils::Memory::CSharedPointer<std::function<void(void)>> fn);
+        void addIdleEvent(Abyssutils::Memory::CSharedPointer<std::function<void(void)>> fn);
 
         /* remove an idle event from the queue */
-        void removeIdleEvent(Hyprutils::Memory::CSharedPointer<std::function<void(void)>> pfn);
+        void removeIdleEvent(Abyssutils::Memory::CSharedPointer<std::function<void(void)>> pfn);
 
         // utils
         int reopenDRMNode(int drmFD, bool allowRenderNode = true);
@@ -147,21 +147,21 @@ namespace Aquamarine {
         void onNewGpu(std::string path);
 
         struct {
-            Hyprutils::Signal::CSignalT<Hyprutils::Memory::CSharedPointer<IOutput>>     newOutput;
-            Hyprutils::Signal::CSignalT<Hyprutils::Memory::CSharedPointer<IPointer>>    newPointer;
-            Hyprutils::Signal::CSignalT<Hyprutils::Memory::CSharedPointer<IKeyboard>>   newKeyboard;
-            Hyprutils::Signal::CSignalT<Hyprutils::Memory::CSharedPointer<ITouch>>      newTouch;
-            Hyprutils::Signal::CSignalT<Hyprutils::Memory::CSharedPointer<ISwitch>>     newSwitch;
-            Hyprutils::Signal::CSignalT<Hyprutils::Memory::CSharedPointer<ITablet>>     newTablet;
-            Hyprutils::Signal::CSignalT<Hyprutils::Memory::CSharedPointer<ITabletTool>> newTabletTool;
-            Hyprutils::Signal::CSignalT<Hyprutils::Memory::CSharedPointer<ITabletPad>>  newTabletPad;
+            Abyssutils::Signal::CSignalT<Abyssutils::Memory::CSharedPointer<IOutput>>     newOutput;
+            Abyssutils::Signal::CSignalT<Abyssutils::Memory::CSharedPointer<IPointer>>    newPointer;
+            Abyssutils::Signal::CSignalT<Abyssutils::Memory::CSharedPointer<IKeyboard>>   newKeyboard;
+            Abyssutils::Signal::CSignalT<Abyssutils::Memory::CSharedPointer<ITouch>>      newTouch;
+            Abyssutils::Signal::CSignalT<Abyssutils::Memory::CSharedPointer<ISwitch>>     newSwitch;
+            Abyssutils::Signal::CSignalT<Abyssutils::Memory::CSharedPointer<ITablet>>     newTablet;
+            Abyssutils::Signal::CSignalT<Abyssutils::Memory::CSharedPointer<ITabletTool>> newTabletTool;
+            Abyssutils::Signal::CSignalT<Abyssutils::Memory::CSharedPointer<ITabletPad>>  newTabletPad;
 
-            Hyprutils::Signal::CSignalT<>                                               pollFDsChanged;
+            Abyssutils::Signal::CSignalT<>                                               pollFDsChanged;
         } events;
 
-        Hyprutils::Memory::CSharedPointer<IAllocator> primaryAllocator;
+        Abyssutils::Memory::CSharedPointer<IAllocator> primaryAllocator;
         bool                                          ready = false;
-        Hyprutils::Memory::CSharedPointer<CSession>   session;
+        Abyssutils::Memory::CSharedPointer<CSession>   session;
 
         /* Get the primary DRM RenderNode */
         int drmRenderNodeFD();
@@ -172,15 +172,15 @@ namespace Aquamarine {
         bool                                                                   terminate = false;
 
         std::vector<SBackendImplementationOptions>                             implementationOptions;
-        std::vector<Hyprutils::Memory::CSharedPointer<IBackendImplementation>> implementations;
+        std::vector<Abyssutils::Memory::CSharedPointer<IBackendImplementation>> implementations;
         SBackendOptions                                                        options;
-        Hyprutils::Memory::CWeakPointer<CBackend>                              self;
-        std::vector<Hyprutils::Memory::CSharedPointer<SPollFD>>                sessionFDs;
-        Hyprutils::Memory::CSharedPointer<CLogger>                             logger;
+        Abyssutils::Memory::CWeakPointer<CBackend>                              self;
+        std::vector<Abyssutils::Memory::CSharedPointer<SPollFD>>                sessionFDs;
+        Abyssutils::Memory::CSharedPointer<CLogger>                             logger;
 
         struct {
             int                                                                       fd = -1;
-            std::vector<Hyprutils::Memory::CSharedPointer<std::function<void(void)>>> pending;
+            std::vector<Abyssutils::Memory::CSharedPointer<std::function<void(void)>>> pending;
         } idle;
 
         void dispatchIdle();

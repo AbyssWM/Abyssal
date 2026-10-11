@@ -3,9 +3,9 @@
 // FIXME: migrate this to utils
 
 // includes box and vector as well
-#include <hyprutils/math/Region.hpp>
+#include <abyssutils/math/Region.hpp>
 
-using namespace Hyprutils::Math;
+using namespace Abyssutils::Math;
 
 void projectBox(float mat[9], CBox& box, eTransform transform, float rotation, const float projection[9]);
 void matrixProjection(float mat[9], int width, int height, eTransform transform);

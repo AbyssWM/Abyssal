@@ -5,7 +5,7 @@
 struct gbm_device;
 struct gbm_bo;
 
-namespace Aquamarine {
+namespace Abyssal {
     class CGBMAllocator;
     class CBackend;
     class CSwapchain;
@@ -16,7 +16,7 @@ namespace Aquamarine {
 
         virtual eBufferCapability                      caps();
         virtual eBufferType                            type();
-        virtual void                                   update(const Hyprutils::Math::CRegion& damage);
+        virtual void                                   update(const Abyssutils::Math::CRegion& damage);
         virtual bool                                   isSynchronous();
         virtual bool                                   good();
         virtual SDMABUFAttrs                           dmabuf();
@@ -24,9 +24,9 @@ namespace Aquamarine {
         virtual void                                   endDataPtr();
 
       private:
-        CGBMBuffer(const SAllocatorBufferParams& params, Hyprutils::Memory::CWeakPointer<CGBMAllocator> allocator_, Hyprutils::Memory::CSharedPointer<CSwapchain> swapchain);
+        CGBMBuffer(const SAllocatorBufferParams& params, Abyssutils::Memory::CWeakPointer<CGBMAllocator> allocator_, Abyssutils::Memory::CSharedPointer<CSwapchain> swapchain);
 
-        Hyprutils::Memory::CWeakPointer<CGBMAllocator> allocator;
+        Abyssutils::Memory::CWeakPointer<CGBMAllocator> allocator;
 
         // gbm stuff
         gbm_bo*      bo         = nullptr;
@@ -40,25 +40,25 @@ namespace Aquamarine {
     class CGBMAllocator : public IAllocator {
       public:
         ~CGBMAllocator();
-        static Hyprutils::Memory::CSharedPointer<CGBMAllocator> create(int drmfd_, Hyprutils::Memory::CWeakPointer<CBackend> backend_);
+        static Abyssutils::Memory::CSharedPointer<CGBMAllocator> create(int drmfd_, Abyssutils::Memory::CWeakPointer<CBackend> backend_);
 
-        virtual Hyprutils::Memory::CSharedPointer<IBuffer>      acquire(const SAllocatorBufferParams& params, Hyprutils::Memory::CSharedPointer<CSwapchain> swapchain_);
-        virtual Hyprutils::Memory::CSharedPointer<CBackend>     getBackend();
+        virtual Abyssutils::Memory::CSharedPointer<IBuffer>      acquire(const SAllocatorBufferParams& params, Abyssutils::Memory::CSharedPointer<CSwapchain> swapchain_);
+        virtual Abyssutils::Memory::CSharedPointer<CBackend>     getBackend();
         virtual int                                             drmFD();
         virtual eAllocatorType                                  type();
         virtual void                                            destroyBuffers();
 
         //
-        Hyprutils::Memory::CWeakPointer<CGBMAllocator> self;
+        Abyssutils::Memory::CWeakPointer<CGBMAllocator> self;
 
       private:
-        CGBMAllocator(int fd_, Hyprutils::Memory::CWeakPointer<CBackend> backend_);
+        CGBMAllocator(int fd_, Abyssutils::Memory::CWeakPointer<CBackend> backend_);
 
         // a vector purely for tracking (debugging) the buffers and nothing more
-        std::vector<Hyprutils::Memory::CWeakPointer<CGBMBuffer>> buffers;
+        std::vector<Abyssutils::Memory::CWeakPointer<CGBMBuffer>> buffers;
 
         int                                                      fd = -1;
-        Hyprutils::Memory::CWeakPointer<CBackend>                backend;
+        Abyssutils::Memory::CWeakPointer<CBackend>                backend;
 
         // gbm stuff
         gbm_device* gbmDevice            = nullptr;

@@ -1,8 +1,8 @@
 #include <algorithm>
-#include <aquamarine/allocator/GBM.hpp>
-#include <aquamarine/backend/Backend.hpp>
-#include <aquamarine/backend/DRM.hpp>
-#include <aquamarine/allocator/Swapchain.hpp>
+#include <abyssal/allocator/GBM.hpp>
+#include <abyssal/backend/Backend.hpp>
+#include <abyssal/backend/DRM.hpp>
+#include <abyssal/allocator/Swapchain.hpp>
 #include "FormatUtils.hpp"
 #include "Shared.hpp"
 #include <xf86drm.h>
@@ -10,8 +10,8 @@
 #include <unistd.h>
 #include "../backend/drm/Renderer.hpp"
 
-using namespace Aquamarine;
-using namespace Hyprutils::Memory;
+using namespace Abyssal;
+using namespace Abyssutils::Memory;
 #define SP CSharedPointer
 
 static SDRMFormat guessFormatFrom(std::vector<SDRMFormat> formats, bool cursor, bool scanout) {
@@ -61,8 +61,8 @@ static SDRMFormat guessFormatFrom(std::vector<SDRMFormat> formats, bool cursor, 
     return formats.at(0);
 }
 
-Aquamarine::CGBMBuffer::CGBMBuffer(const SAllocatorBufferParams& params, Hyprutils::Memory::CWeakPointer<CGBMAllocator> allocator_,
-                                   Hyprutils::Memory::CSharedPointer<CSwapchain> swapchain) : allocator(allocator_) {
+Abyssal::CGBMBuffer::CGBMBuffer(const SAllocatorBufferParams& params, Abyssutils::Memory::CWeakPointer<CGBMAllocator> allocator_,
+                                   Abyssutils::Memory::CSharedPointer<CSwapchain> swapchain) : allocator(allocator_) {
     if (!allocator)
         return;
 
@@ -74,30 +74,30 @@ Aquamarine::CGBMBuffer::CGBMBuffer(const SAllocatorBufferParams& params, Hypruti
     const bool MULTIGPU         = params.multigpu && params.scanout;
     const bool EXPLICIT_SCANOUT = params.scanout && swapchain->currentOptions().scanoutOutput && !params.multigpu;
 
-    TRACE(allocator->backend->log(AQ_LOG_TRACE,
+    TRACE(allocator->backend->log(ABYSSAL_LOG_TRACE,
                                   std::format("GBM: Allocating a buffer: size {}, format {}, cursor: {}, multigpu: {}, scanout: {}", attrs.size, fourccToName(attrs.format), CURSOR,
                                               MULTIGPU, params.scanout)));
 
     if (EXPLICIT_SCANOUT)
         TRACE(allocator->backend->log(
-            AQ_LOG_TRACE, std::format("GBM: Explicit scanout output, output has {} explicit formats", swapchain->currentOptions().scanoutOutput->getRenderFormats().size())));
+            ABYSSAL_LOG_TRACE, std::format("GBM: Explicit scanout output, output has {} explicit formats", swapchain->currentOptions().scanoutOutput->getRenderFormats().size())));
 
     const auto FORMATS    = CURSOR ? swapchain->backendImpl->getCursorFormats() :
                                      (EXPLICIT_SCANOUT ? swapchain->currentOptions().scanoutOutput->getRenderFormats() : swapchain->backendImpl->getRenderFormats());
     const auto RENDERABLE = swapchain->backendImpl->getRenderableFormats();
 
-    TRACE(allocator->backend->log(AQ_LOG_TRACE, std::format("GBM: Available formats: {}", FORMATS.size())));
+    TRACE(allocator->backend->log(ABYSSAL_LOG_TRACE, std::format("GBM: Available formats: {}", FORMATS.size())));
 
     std::vector<uint64_t> explicitModifiers;
 
     if (attrs.format == DRM_FORMAT_INVALID) {
         attrs.format = guessFormatFrom(FORMATS, CURSOR, params.scanout).drmFormat;
         if (attrs.format != DRM_FORMAT_INVALID)
-            allocator->backend->log(AQ_LOG_DEBUG, std::format("GBM: Automatically selected format {} for new GBM buffer", fourccToName(attrs.format)));
+            allocator->backend->log(ABYSSAL_LOG_DEBUG, std::format("GBM: Automatically selected format {} for new GBM buffer", fourccToName(attrs.format)));
     }
 
     if (attrs.format == DRM_FORMAT_INVALID) {
-        allocator->backend->log(AQ_LOG_ERROR, "GBM: Failed to allocate a GBM buffer: no format found");
+        allocator->backend->log(ABYSSAL_LOG_ERROR, "GBM: Failed to allocate a GBM buffer: no format found");
         return;
     }
 
@@ -114,18 +114,18 @@ Aquamarine::CGBMBuffer::CGBMBuffer(const SAllocatorBufferParams& params, Hypruti
                 continue;
 
             if (!RENDERABLE.empty()) {
-                TRACE(allocator->backend->log(AQ_LOG_TRACE, std::format("GBM: Renderable has {} formats, clipping", RENDERABLE.size())));
+                TRACE(allocator->backend->log(ABYSSAL_LOG_TRACE, std::format("GBM: Renderable has {} formats, clipping", RENDERABLE.size())));
                 if (params.scanout && !CURSOR && !MULTIGPU) {
                     // regular scanout plane, check if the format is renderable
                     auto rformat = std::ranges::find_if(RENDERABLE, [f](const auto& e) { return e.drmFormat == f.drmFormat; });
 
                     if (rformat == RENDERABLE.end()) {
-                        TRACE(allocator->backend->log(AQ_LOG_TRACE, std::format("GBM: Dropping format {} as it's not renderable", fourccToName(f.drmFormat))));
+                        TRACE(allocator->backend->log(ABYSSAL_LOG_TRACE, std::format("GBM: Dropping format {} as it's not renderable", fourccToName(f.drmFormat))));
                         break;
                     }
 
                     if (std::find(rformat->modifiers.begin(), rformat->modifiers.end(), m) == rformat->modifiers.end()) {
-                        TRACE(allocator->backend->log(AQ_LOG_TRACE, std::format("GBM: Dropping modifier 0x{:x} : {} as it's not renderable", m, drmModifierToName(m))));
+                        TRACE(allocator->backend->log(ABYSSAL_LOG_TRACE, std::format("GBM: Dropping modifier 0x{:x} : {} as it's not renderable", m, drmModifierToName(m))));
                         continue;
                     }
                 }
@@ -135,19 +135,19 @@ Aquamarine::CGBMBuffer::CGBMBuffer(const SAllocatorBufferParams& params, Hypruti
     }
 
     if (!foundFormat) {
-        allocator->backend->log(AQ_LOG_ERROR, std::format("GBM: Failed to allocate a GBM buffer: format {} isn't supported by primary backend", fourccToName(attrs.format)));
+        allocator->backend->log(ABYSSAL_LOG_ERROR, std::format("GBM: Failed to allocate a GBM buffer: format {} isn't supported by primary backend", fourccToName(attrs.format)));
         bo = nullptr;
         return;
     }
 
-    static const auto forceLinearBlit = !envExplicitlyDisabled("AQ_FORCE_LINEAR_BLIT");
+    static const auto forceLinearBlit = !envExplicitlyDisabled("ABYSSAL_FORCE_LINEAR_BLIT");
     auto const        oldMods         = explicitModifiers; // used in FORCE_LINEAR_BLIT case.
     if (MULTIGPU && !forceLinearBlit) {
         // Try to use the linear format if available for cross-GPU compatibility.
         // However, Nvidia doesn't support linear, so this is a best-effort basis.
         for (auto const& f : FORMATS) {
             if (f.drmFormat == DRM_FORMAT_MOD_LINEAR) {
-                allocator->backend->log(AQ_LOG_DEBUG, "GBM: Buffer is marked as multigpu, using linear format");
+                allocator->backend->log(ABYSSAL_LOG_DEBUG, "GBM: Buffer is marked as multigpu, using linear format");
                 explicitModifiers = {DRM_FORMAT_MOD_LINEAR};
                 break;
             }
@@ -158,7 +158,7 @@ Aquamarine::CGBMBuffer::CGBMBuffer(const SAllocatorBufferParams& params, Hypruti
         // without this blitting on laptops intel/amd <-> nvidia makes eglCreateImageKHR error and
         // fallback to slow cpu copying.
 
-        allocator->backend->log(AQ_LOG_DEBUG, "GBM: Buffer is marked as multigpu, forcing linear");
+        allocator->backend->log(ABYSSAL_LOG_DEBUG, "GBM: Buffer is marked as multigpu, forcing linear");
         explicitModifiers = {DRM_FORMAT_MOD_LINEAR};
     }
 
@@ -169,18 +169,18 @@ Aquamarine::CGBMBuffer::CGBMBuffer(const SAllocatorBufferParams& params, Hypruti
     uint64_t modifier = DRM_FORMAT_MOD_INVALID;
 
     if (explicitModifiers.empty()) {
-        allocator->backend->log(AQ_LOG_WARNING, "GBM: Using modifier-less allocation");
+        allocator->backend->log(ABYSSAL_LOG_WARNING, "GBM: Using modifier-less allocation");
         bo = gbm_bo_create(allocator->gbmDevice, attrs.size.x, attrs.size.y, attrs.format, flags);
     } else {
-        TRACE(allocator->backend->log(AQ_LOG_TRACE, std::format("GBM: Using modifier-based allocation, modifiers: {}", explicitModifiers.size())));
+        TRACE(allocator->backend->log(ABYSSAL_LOG_TRACE, std::format("GBM: Using modifier-based allocation, modifiers: {}", explicitModifiers.size())));
         for (auto const& mod : explicitModifiers) {
-            TRACE(allocator->backend->log(AQ_LOG_TRACE, std::format("GBM: | mod 0x{:x} : {}", mod, drmModifierToName(mod))));
+            TRACE(allocator->backend->log(ABYSSAL_LOG_TRACE, std::format("GBM: | mod 0x{:x} : {}", mod, drmModifierToName(mod))));
         }
         bo = gbm_bo_create_with_modifiers2(allocator->gbmDevice, attrs.size.x, attrs.size.y, attrs.format, explicitModifiers.data(), explicitModifiers.size(), flags);
 
         if (!bo && CURSOR) {
             // allow non-renderable cursor buffer for nvidia
-            allocator->backend->log(AQ_LOG_ERROR, "GBM: Allocating with modifiers and flags failed, falling back to modifiers without flags");
+            allocator->backend->log(ABYSSAL_LOG_ERROR, "GBM: Allocating with modifiers and flags failed, falling back to modifiers without flags");
             bo = gbm_bo_create_with_modifiers(allocator->gbmDevice, attrs.size.x, attrs.size.y, attrs.format, explicitModifiers.data(), explicitModifiers.size());
         }
 
@@ -193,9 +193,9 @@ Aquamarine::CGBMBuffer::CGBMBuffer(const SAllocatorBufferParams& params, Hypruti
             if (useLinear) {
                 flags |= GBM_BO_USE_LINEAR;
                 modifier = DRM_FORMAT_MOD_LINEAR;
-                allocator->backend->log(AQ_LOG_ERROR, "GBM: Allocating with modifiers failed, falling back to modifier-less allocation");
+                allocator->backend->log(ABYSSAL_LOG_ERROR, "GBM: Allocating with modifiers failed, falling back to modifier-less allocation");
             } else
-                allocator->backend->log(AQ_LOG_ERROR, "GBM: Allocating with modifiers failed, falling back to implicit");
+                allocator->backend->log(ABYSSAL_LOG_ERROR, "GBM: Allocating with modifiers failed, falling back to implicit");
             bo = gbm_bo_create(allocator->gbmDevice, attrs.size.x, attrs.size.y, attrs.format, flags);
         }
     }
@@ -209,7 +209,7 @@ Aquamarine::CGBMBuffer::CGBMBuffer(const SAllocatorBufferParams& params, Hypruti
                 bo = gbm_bo_create_with_modifiers(allocator->gbmDevice, attrs.size.x, attrs.size.y, attrs.format, oldMods.data(), oldMods.size());
 
             if (!bo) {
-                allocator->backend->log(AQ_LOG_ERROR, "GBM: Failed to allocate a GBM buffer: bo null");
+                allocator->backend->log(ABYSSAL_LOG_ERROR, "GBM: Failed to allocate a GBM buffer: bo null");
                 return;
             }
 
@@ -218,7 +218,7 @@ Aquamarine::CGBMBuffer::CGBMBuffer(const SAllocatorBufferParams& params, Hypruti
     }
 
     if (!bo) {
-        allocator->backend->log(AQ_LOG_ERROR, "GBM: Failed to allocate a GBM buffer: bo null");
+        allocator->backend->log(ABYSSAL_LOG_ERROR, "GBM: Failed to allocate a GBM buffer: bo null");
         return;
     }
 
@@ -231,7 +231,7 @@ Aquamarine::CGBMBuffer::CGBMBuffer(const SAllocatorBufferParams& params, Hypruti
         attrs.fds.at(i)     = gbm_bo_get_fd_for_plane(bo, i);
 
         if (attrs.fds.at(i) < 0) {
-            allocator->backend->log(AQ_LOG_ERROR, std::format("GBM: Failed to query fd for plane {}", i));
+            allocator->backend->log(ABYSSAL_LOG_ERROR, std::format("GBM: Failed to query fd for plane {}", i));
             for (size_t j = 0; j < i; ++j) {
                 close(attrs.fds.at(j));
             }
@@ -242,11 +242,11 @@ Aquamarine::CGBMBuffer::CGBMBuffer(const SAllocatorBufferParams& params, Hypruti
 
     attrs.success = true;
 
-    allocator->backend->log(AQ_LOG_DEBUG,
+    allocator->backend->log(ABYSSAL_LOG_DEBUG,
                             std::format("GBM: Allocated a new buffer with size {} and format {} with modifier 0x{:x} : {}", attrs.size, fourccToName(attrs.format), attrs.modifier,
                                         drmModifierToName(attrs.modifier)));
 
-    if (params.scanout && !MULTIGPU && swapchain->backendImpl->type() == AQ_BACKEND_DRM) {
+    if (params.scanout && !MULTIGPU && swapchain->backendImpl->type() == ABYSSAL_BACKEND_DRM) {
         // clear the buffer using the DRM renderer to avoid uninitialized mem
         auto impl = (CDRMBackend*)swapchain->backendImpl.get();
         if (impl->rendererState.renderer)
@@ -254,7 +254,7 @@ Aquamarine::CGBMBuffer::CGBMBuffer(const SAllocatorBufferParams& params, Hypruti
     }
 }
 
-Aquamarine::CGBMBuffer::~CGBMBuffer() {
+Abyssal::CGBMBuffer::~CGBMBuffer() {
     for (size_t i = 0; i < (size_t)attrs.planes; i++) {
         close(attrs.fds.at(i));
     }
@@ -267,41 +267,41 @@ Aquamarine::CGBMBuffer::~CGBMBuffer() {
     }
 }
 
-eBufferCapability Aquamarine::CGBMBuffer::caps() {
-    return (Aquamarine::eBufferCapability)0;
+eBufferCapability Abyssal::CGBMBuffer::caps() {
+    return (Abyssal::eBufferCapability)0;
 }
 
-eBufferType Aquamarine::CGBMBuffer::type() {
-    return Aquamarine::eBufferType::BUFFER_TYPE_DMABUF;
+eBufferType Abyssal::CGBMBuffer::type() {
+    return Abyssal::eBufferType::BUFFER_TYPE_DMABUF;
 }
 
-void Aquamarine::CGBMBuffer::update(const Hyprutils::Math::CRegion& damage) {
+void Abyssal::CGBMBuffer::update(const Abyssutils::Math::CRegion& damage) {
     ;
 }
 
-bool Aquamarine::CGBMBuffer::isSynchronous() {
+bool Abyssal::CGBMBuffer::isSynchronous() {
     return false;
 }
 
-bool Aquamarine::CGBMBuffer::good() {
+bool Abyssal::CGBMBuffer::good() {
     return bo;
 }
 
-SDMABUFAttrs Aquamarine::CGBMBuffer::dmabuf() {
+SDMABUFAttrs Abyssal::CGBMBuffer::dmabuf() {
     return attrs;
 }
 
-std::tuple<uint8_t*, uint32_t, size_t> Aquamarine::CGBMBuffer::beginDataPtr(uint32_t flags) {
+std::tuple<uint8_t*, uint32_t, size_t> Abyssal::CGBMBuffer::beginDataPtr(uint32_t flags) {
     uint32_t stride = 0;
     if (boBuffer)
-        allocator->backend->log(AQ_LOG_ERROR, "beginDataPtr is called a second time without calling endDataPtr first. Returning old mapping");
+        allocator->backend->log(ABYSSAL_LOG_ERROR, "beginDataPtr is called a second time without calling endDataPtr first. Returning old mapping");
     else
         boBuffer = gbm_bo_map(bo, 0, 0, attrs.size.x, attrs.size.y, flags, &stride, &gboMapping);
 
     return {(uint8_t*)boBuffer, attrs.format, stride * attrs.size.y};
 }
 
-void Aquamarine::CGBMBuffer::endDataPtr() {
+void Abyssal::CGBMBuffer::endDataPtr() {
     if (gboMapping) {
         gbm_bo_unmap(bo, gboMapping);
         gboMapping = nullptr;
@@ -328,30 +328,30 @@ CGBMAllocator::~CGBMAllocator() {
     close(fd);
 }
 
-SP<CGBMAllocator> Aquamarine::CGBMAllocator::create(int drmfd_, Hyprutils::Memory::CWeakPointer<CBackend> backend_) {
+SP<CGBMAllocator> Abyssal::CGBMAllocator::create(int drmfd_, Abyssutils::Memory::CWeakPointer<CBackend> backend_) {
     uint64_t capabilities = 0;
     if (drmGetCap(drmfd_, DRM_CAP_PRIME, &capabilities) || !(capabilities & DRM_PRIME_CAP_EXPORT)) {
-        backend_->log(AQ_LOG_ERROR, "Cannot create a GBM Allocator: PRIME export is not supported by the gpu.");
+        backend_->log(ABYSSAL_LOG_ERROR, "Cannot create a GBM Allocator: PRIME export is not supported by the gpu.");
         return nullptr;
     }
 
     auto allocator = SP<CGBMAllocator>(new CGBMAllocator(drmfd_, backend_));
 
     if (!allocator->gbmDevice) {
-        backend_->log(AQ_LOG_ERROR, "Cannot create a GBM Allocator: gbm failed to create a device.");
+        backend_->log(ABYSSAL_LOG_ERROR, "Cannot create a GBM Allocator: gbm failed to create a device.");
         return nullptr;
     }
 
-    backend_->log(AQ_LOG_DEBUG, std::format("Created a GBM allocator with drm fd {}", drmfd_));
+    backend_->log(ABYSSAL_LOG_DEBUG, std::format("Created a GBM allocator with drm fd {}", drmfd_));
 
     allocator->self = allocator;
 
     return allocator;
 }
 
-Aquamarine::CGBMAllocator::CGBMAllocator(int fd_, Hyprutils::Memory::CWeakPointer<CBackend> backend_) : fd(fd_), backend(backend_), gbmDevice(gbm_create_device(fd_)) {
+Abyssal::CGBMAllocator::CGBMAllocator(int fd_, Abyssutils::Memory::CWeakPointer<CBackend> backend_) : fd(fd_), backend(backend_), gbmDevice(gbm_create_device(fd_)) {
     if (!gbmDevice) {
-        backend->log(AQ_LOG_ERROR, std::format("Couldn't open a GBM device at fd {}", fd_));
+        backend->log(ABYSSAL_LOG_ERROR, std::format("Couldn't open a GBM device at fd {}", fd_));
         return;
     }
 
@@ -361,16 +361,16 @@ Aquamarine::CGBMAllocator::CGBMAllocator(int fd_, Hyprutils::Memory::CWeakPointe
     free(drmName_);
 }
 
-SP<IBuffer> Aquamarine::CGBMAllocator::acquire(const SAllocatorBufferParams& params, Hyprutils::Memory::CSharedPointer<CSwapchain> swapchain_) {
+SP<IBuffer> Abyssal::CGBMAllocator::acquire(const SAllocatorBufferParams& params, Abyssutils::Memory::CSharedPointer<CSwapchain> swapchain_) {
     if (params.size.x < 1 || params.size.y < 1) {
-        backend->log(AQ_LOG_ERROR, std::format("Couldn't allocate a gbm buffer with invalid size {}", params.size));
+        backend->log(ABYSSAL_LOG_ERROR, std::format("Couldn't allocate a gbm buffer with invalid size {}", params.size));
         return nullptr;
     }
 
     auto newBuffer = SP<CGBMBuffer>(new CGBMBuffer(params, self, swapchain_));
 
     if (!newBuffer->good()) {
-        backend->log(AQ_LOG_ERROR, std::format("Couldn't allocate a gbm buffer with size {} and format {}", params.size, fourccToName(params.format)));
+        backend->log(ABYSSAL_LOG_ERROR, std::format("Couldn't allocate a gbm buffer with size {} and format {}", params.size, fourccToName(params.format)));
         return nullptr;
     }
 
@@ -379,14 +379,14 @@ SP<IBuffer> Aquamarine::CGBMAllocator::acquire(const SAllocatorBufferParams& par
     return newBuffer;
 }
 
-Hyprutils::Memory::CSharedPointer<CBackend> Aquamarine::CGBMAllocator::getBackend() {
+Abyssutils::Memory::CSharedPointer<CBackend> Abyssal::CGBMAllocator::getBackend() {
     return backend.lock();
 }
 
-int Aquamarine::CGBMAllocator::drmFD() {
+int Abyssal::CGBMAllocator::drmFD() {
     return fd;
 }
 
-eAllocatorType Aquamarine::CGBMAllocator::type() {
-    return AQ_ALLOCATOR_TYPE_GBM;
+eAllocatorType Abyssal::CGBMAllocator::type() {
+    return ABYSSAL_ALLOCATOR_TYPE_GBM;
 }

@@ -3,17 +3,17 @@
 #include <cerrno>
 #include <thread>
 
-using namespace Aquamarine;
-using namespace Hyprutils::Memory;
+using namespace Abyssal;
+using namespace Abyssutils::Memory;
 
-void Aquamarine::CDRMCursorPositionMailbox::store(const Hyprutils::Math::Vector2D& position) {
+void Abyssal::CDRMCursorPositionMailbox::store(const Abyssutils::Math::Vector2D& position) {
     m_sequence.fetch_add(1, std::memory_order_acq_rel);
     m_x.store(sc<int64_t>(position.x), std::memory_order_relaxed);
     m_y.store(sc<int64_t>(position.y), std::memory_order_relaxed);
     m_sequence.fetch_add(1, std::memory_order_release);
 }
 
-Hyprutils::Math::Vector2D Aquamarine::CDRMCursorPositionMailbox::load() const {
+Abyssutils::Math::Vector2D Abyssal::CDRMCursorPositionMailbox::load() const {
     while (true) {
         const auto BEFORE = m_sequence.load(std::memory_order_acquire);
         if (BEFORE & 1) {
@@ -29,16 +29,16 @@ Hyprutils::Math::Vector2D Aquamarine::CDRMCursorPositionMailbox::load() const {
     }
 }
 
-Aquamarine::CDRMAsyncCommitData::CDRMAsyncCommitData(COutputState::CSnapshot&& snapshot_) : snapshot(makeUnique<COutputState::CSnapshot>(std::move(snapshot_))) {
+Abyssal::CDRMAsyncCommitData::CDRMAsyncCommitData(COutputState::CSnapshot&& snapshot_) : snapshot(makeUnique<COutputState::CSnapshot>(std::move(snapshot_))) {
     ;
 }
 
-Aquamarine::CDRMAsyncCommitData::~CDRMAsyncCommitData() {
+Abyssal::CDRMAsyncCommitData::~CDRMAsyncCommitData() {
     rollbackMgpu();
     releasePins();
 }
 
-void Aquamarine::CDRMAsyncCommitData::pinBuffers() {
+void Abyssal::CDRMAsyncCommitData::pinBuffers() {
     if (mainBuffer && !mainPinned) {
         mainBuffer->backendPin();
         mainPinned = true;
@@ -50,7 +50,7 @@ void Aquamarine::CDRMAsyncCommitData::pinBuffers() {
     }
 }
 
-void Aquamarine::CDRMAsyncCommitData::releasePins() {
+void Abyssal::CDRMAsyncCommitData::releasePins() {
     if (mainPinned && mainBuffer) {
         mainBuffer->backendUnpin();
         mainPinned = false;
@@ -62,7 +62,7 @@ void Aquamarine::CDRMAsyncCommitData::releasePins() {
     }
 }
 
-void Aquamarine::CDRMAsyncCommitData::rollbackMgpu() {
+void Abyssal::CDRMAsyncCommitData::rollbackMgpu() {
     if (!mgpuAcquired || !mgpuSwapchain)
         return;
 
@@ -70,7 +70,7 @@ void Aquamarine::CDRMAsyncCommitData::rollbackMgpu() {
     mgpuAcquired = false;
 }
 
-IDRMCommitSubmitter::SResult Aquamarine::CDRMAsyncCommitData::submit(int drmFD, uint64_t commitID) const noexcept {
+IDRMCommitSubmitter::SResult Abyssal::CDRMAsyncCommitData::submit(int drmFD, uint64_t commitID) const noexcept {
     if (!request || !commitID || !flipID)
         return {.submitted = false, .error = EINVAL};
 
@@ -103,7 +103,7 @@ class CDRMCommitSubmitter final : public IDRMCommitSubmitter {
     int drmFD = -1;
 };
 
-CUniquePointer<IDRMCommitSubmitter> Aquamarine::makeDRMCommitSubmitter(int drmFD) {
+CUniquePointer<IDRMCommitSubmitter> Abyssal::makeDRMCommitSubmitter(int drmFD) {
     if (drmFD < 0)
         return nullptr;
 

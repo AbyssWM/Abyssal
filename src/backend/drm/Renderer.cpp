@@ -8,13 +8,13 @@
 #include "Math.hpp"
 #include "Shared.hpp"
 #include "FormatUtils.hpp"
-#include <aquamarine/allocator/GBM.hpp>
-#include <hyprutils/os/FileDescriptor.hpp>
+#include <abyssal/allocator/GBM.hpp>
+#include <abyssutils/os/FileDescriptor.hpp>
 
-using namespace Aquamarine;
-using namespace Hyprutils::Memory;
-using namespace Hyprutils::Math;
-using namespace Hyprutils::OS;
+using namespace Abyssal;
+using namespace Abyssutils::Memory;
+using namespace Abyssutils::Math;
+using namespace Abyssutils::OS;
 
 #define SP CSharedPointer
 #define WP CWeakPointer
@@ -23,10 +23,10 @@ using namespace Hyprutils::OS;
 #define GLCALL(__CALL__)                                                                                                                                                           \
     {                                                                                                                                                                              \
         __CALL__;                                                                                                                                                                  \
-        if (Aquamarine::isTrace()) {                                                                                                                                               \
+        if (Abyssal::isTrace()) {                                                                                                                                               \
             auto err = glGetError();                                                                                                                                               \
             if (err != GL_NO_ERROR) {                                                                                                                                              \
-                backend->log(AQ_LOG_ERROR,                                                                                                                                         \
+                backend->log(ABYSSAL_LOG_ERROR,                                                                                                                                         \
                              std::format("[GLES] Error in call at {}@{}: 0x{:x}", __LINE__,                                                                                        \
                                          ([]() constexpr -> std::string { return std::string(__FILE__).substr(std::string(__FILE__).find_last_of('/') + 1); })(), err));           \
             }                                                                                                                                                                      \
@@ -130,7 +130,7 @@ void main() {
 static inline void loadGLProc(void* pProc, const char* name) {
     void* proc = (void*)eglGetProcAddress(name);
     if (!proc) {
-        gBackend->log(AQ_LOG_ERROR, std::format("eglGetProcAddress({}) failed, the display driver doesn't support it", name));
+        gBackend->log(ABYSSAL_LOG_ERROR, std::format("eglGetProcAddress({}) failed, the display driver doesn't support it", name));
         abort();
     }
     *(void**)pProc = proc;
@@ -138,11 +138,11 @@ static inline void loadGLProc(void* pProc, const char* name) {
 
 static enum eBackendLogLevel eglLogToLevel(EGLint type) {
     switch (type) {
-        case EGL_DEBUG_MSG_CRITICAL_KHR: return AQ_LOG_CRITICAL;
-        case EGL_DEBUG_MSG_ERROR_KHR: return AQ_LOG_ERROR;
-        case EGL_DEBUG_MSG_WARN_KHR: return AQ_LOG_WARNING;
-        case EGL_DEBUG_MSG_INFO_KHR: return AQ_LOG_DEBUG;
-        default: return AQ_LOG_DEBUG;
+        case EGL_DEBUG_MSG_CRITICAL_KHR: return ABYSSAL_LOG_CRITICAL;
+        case EGL_DEBUG_MSG_ERROR_KHR: return ABYSSAL_LOG_ERROR;
+        case EGL_DEBUG_MSG_WARN_KHR: return ABYSSAL_LOG_WARNING;
+        case EGL_DEBUG_MSG_INFO_KHR: return ABYSSAL_LOG_DEBUG;
+        default: return ABYSSAL_LOG_DEBUG;
     }
 }
 
@@ -236,12 +236,12 @@ void CDRMRenderer::SShader::createVao() {
 EGLDeviceEXT CDRMRenderer::eglDeviceFromDRMFD(int drmFD) {
     EGLint nDevices = 0;
     if (!proc.eglQueryDevicesEXT(0, nullptr, &nDevices)) {
-        backend->log(AQ_LOG_ERROR, "CDRMRenderer(drm): eglQueryDevicesEXT failed");
+        backend->log(ABYSSAL_LOG_ERROR, "CDRMRenderer(drm): eglQueryDevicesEXT failed");
         return EGL_NO_DEVICE_EXT;
     }
 
     if (nDevices <= 0) {
-        backend->log(AQ_LOG_ERROR, "CDRMRenderer(drm): no devices");
+        backend->log(ABYSSAL_LOG_ERROR, "CDRMRenderer(drm): no devices");
         return EGL_NO_DEVICE_EXT;
     }
 
@@ -249,13 +249,13 @@ EGLDeviceEXT CDRMRenderer::eglDeviceFromDRMFD(int drmFD) {
     devices.resize(nDevices);
 
     if (!proc.eglQueryDevicesEXT(nDevices, devices.data(), &nDevices)) {
-        backend->log(AQ_LOG_ERROR, "CDRMRenderer(drm): eglQueryDevicesEXT failed (2)");
+        backend->log(ABYSSAL_LOG_ERROR, "CDRMRenderer(drm): eglQueryDevicesEXT failed (2)");
         return EGL_NO_DEVICE_EXT;
     }
 
     drmDevice* drmDev = nullptr;
     if (int ret = drmGetDevice(drmFD, &drmDev); ret < 0) {
-        backend->log(AQ_LOG_ERROR, "CDRMRenderer(drm): drmGetDevice failed");
+        backend->log(ABYSSAL_LOG_ERROR, "CDRMRenderer(drm): drmGetDevice failed");
         drmFreeDevice(&drmDev);
         return EGL_NO_DEVICE_EXT;
     }
@@ -266,7 +266,7 @@ EGLDeviceEXT CDRMRenderer::eglDeviceFromDRMFD(int drmFD) {
             continue;
 
         if (drmDeviceHasName(drmDev, devName)) {
-            backend->log(AQ_LOG_DEBUG, std::format("CDRMRenderer(drm): Using device {}", devName));
+            backend->log(ABYSSAL_LOG_DEBUG, std::format("CDRMRenderer(drm): Using device {}", devName));
             drmFreeDevice(&drmDev);
             return d;
         }
@@ -281,7 +281,7 @@ std::optional<std::vector<std::pair<uint64_t, bool>>> CDRMRenderer::getModsForFo
 
     EGLint len = 0;
     if (!proc.eglQueryDmaBufModifiersEXT(egl.display, format, 0, nullptr, nullptr, &len)) {
-        backend->log(AQ_LOG_ERROR, std::format("EGL: eglQueryDmaBufModifiersEXT failed for format {}", fourccToName(format)));
+        backend->log(ABYSSAL_LOG_ERROR, std::format("EGL: eglQueryDmaBufModifiersEXT failed for format {}", fourccToName(format)));
         return std::nullopt;
     }
 
@@ -329,11 +329,11 @@ bool CDRMRenderer::initDRMFormats() {
     proc.eglQueryDmaBufFormatsEXT(egl.display, len, formats.data(), &len);
 
     if (formats.empty()) {
-        backend->log(AQ_LOG_ERROR, "EGL: Failed to get formats");
+        backend->log(ABYSSAL_LOG_ERROR, "EGL: Failed to get formats");
         return false;
     }
 
-    TRACE(backend->log(AQ_LOG_TRACE, "EGL: Supported formats:"));
+    TRACE(backend->log(ABYSSAL_LOG_TRACE, "EGL: Supported formats:"));
 
     std::vector<SGLFormat> dmaFormats;
     dmaFormats.reserve(formats.size());
@@ -362,18 +362,18 @@ bool CDRMRenderer::initDRMFormats() {
             });
         }
 
-        TRACE(backend->log(AQ_LOG_TRACE, std::format("EGL: GPU Supports Format {} (0x{:x})", fourccToName((uint32_t)fmt), fmt)));
+        TRACE(backend->log(ABYSSAL_LOG_TRACE, std::format("EGL: GPU Supports Format {} (0x{:x})", fourccToName((uint32_t)fmt), fmt)));
         for (auto const& [mod, external] : mods) {
             auto modName = drmGetFormatModifierName(mod);
-            TRACE(backend->log(AQ_LOG_TRACE, std::format("EGL:  | {}with modifier 0x{:x}: {}", (external ? "external only " : ""), mod, modName ? modName : "?unknown?")));
+            TRACE(backend->log(ABYSSAL_LOG_TRACE, std::format("EGL:  | {}with modifier 0x{:x}: {}", (external ? "external only " : ""), mod, modName ? modName : "?unknown?")));
             free(modName);
         }
     }
 
-    TRACE(backend->log(AQ_LOG_TRACE, std::format("EGL: Found {} formats", dmaFormats.size())));
+    TRACE(backend->log(ABYSSAL_LOG_TRACE, std::format("EGL: Found {} formats", dmaFormats.size())));
 
     if (dmaFormats.empty()) {
-        backend->log(AQ_LOG_ERROR, "EGL: No formats");
+        backend->log(ABYSSAL_LOG_ERROR, "EGL: No formats");
         return false;
     }
 
@@ -381,7 +381,7 @@ bool CDRMRenderer::initDRMFormats() {
     return true;
 }
 
-Aquamarine::CDRMRenderer::~CDRMRenderer() {
+Abyssal::CDRMRenderer::~CDRMRenderer() {
     if (egl.display)
         eglMakeCurrent(egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
 
@@ -397,7 +397,7 @@ Aquamarine::CDRMRenderer::~CDRMRenderer() {
 void CDRMRenderer::loadEGLAPI() {
     const std::string EGLEXTENSIONS = eglQueryString(EGL_NO_DISPLAY, EGL_EXTENSIONS);
 
-    backend->log(AQ_LOG_DEBUG, std::format("Supported EGL client extensions: ({}) {}", std::count(EGLEXTENSIONS.begin(), EGLEXTENSIONS.end(), ' '), EGLEXTENSIONS));
+    backend->log(ABYSSAL_LOG_DEBUG, std::format("Supported EGL client extensions: ({}) {}", std::count(EGLEXTENSIONS.begin(), EGLEXTENSIONS.end(), ' '), EGLEXTENSIONS));
 
     exts.KHR_display_reference = EGLEXTENSIONS.contains("KHR_display_reference");
     exts.EXT_platform_device   = EGLEXTENSIONS.contains("EXT_platform_device");
@@ -435,7 +435,7 @@ void CDRMRenderer::loadEGLAPI() {
         loadGLProc(&proc.eglQueryDeviceStringEXT, "eglQueryDeviceStringEXT");
     }
 
-    RASSERT(eglBindAPI(EGL_OPENGL_ES_API) != EGL_FALSE, "Couldn't bind to EGL's opengl ES API. This means your gpu driver f'd up. This is not a Hyprland or Aquamarine issue.");
+    RASSERT(eglBindAPI(EGL_OPENGL_ES_API) != EGL_FALSE, "Couldn't bind to EGL's opengl ES API. This means your gpu driver f'd up. This is not a Abyssland or Abyssal issue.");
 }
 
 void CDRMRenderer::initContext() {
@@ -443,7 +443,7 @@ void CDRMRenderer::initContext() {
 
     EGLint major, minor;
     if (eglInitialize(egl.display, &major, &minor) == EGL_FALSE) {
-        backend->log(AQ_LOG_ERROR, "CDRMRenderer: fail, eglInitialize failed");
+        backend->log(ABYSSAL_LOG_ERROR, "CDRMRenderer: fail, eglInitialize failed");
         return;
     }
 
@@ -458,24 +458,24 @@ void CDRMRenderer::initContext() {
     std::vector<EGLint> attrs;
 
     if (exts.IMG_context_priority) {
-        backend->log(AQ_LOG_DEBUG, "CDRMRenderer: IMG_context_priority supported, requesting high");
+        backend->log(ABYSSAL_LOG_DEBUG, "CDRMRenderer: IMG_context_priority supported, requesting high");
         attrs.push_back(EGL_CONTEXT_PRIORITY_LEVEL_IMG);
         attrs.push_back(EGL_CONTEXT_PRIORITY_HIGH_IMG);
     }
 
     if (exts.EXT_create_context_robustness) {
-        backend->log(AQ_LOG_DEBUG, "CDRMRenderer: EXT_create_context_robustness supported, requesting lose on reset");
+        backend->log(ABYSSAL_LOG_DEBUG, "CDRMRenderer: EXT_create_context_robustness supported, requesting lose on reset");
         attrs.push_back(EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_EXT);
         attrs.push_back(EGL_LOSE_CONTEXT_ON_RESET_EXT);
     }
 
     if (exts.KHR_context_flush_control) {
-        backend->log(AQ_LOG_DEBUG, "CDRMRenderer: Using KHR_context_flush_control");
+        backend->log(ABYSSAL_LOG_DEBUG, "CDRMRenderer: Using KHR_context_flush_control");
         attrs.push_back(EGL_CONTEXT_RELEASE_BEHAVIOR_KHR);
         attrs.push_back(EGL_CONTEXT_RELEASE_BEHAVIOR_NONE_KHR); // or _FLUSH_KHR
     }
 
-    if (Aquamarine::isTrace()) {
+    if (Abyssal::isTrace()) {
         if (major > 1 || (major == 1 && minor >= 5)) {
             attrs.push_back(EGL_CONTEXT_OPENGL_DEBUG);
             attrs.push_back(EGL_TRUE);
@@ -496,7 +496,7 @@ void CDRMRenderer::initContext() {
 
     egl.context = eglCreateContext(egl.display, EGL_NO_CONFIG_KHR, EGL_NO_CONTEXT, attrs.data());
     if (egl.context == EGL_NO_CONTEXT) {
-        backend->log(AQ_LOG_ERROR, "CDRMRenderer: eglCreateContext failed with GLES 3.2, retrying GLES 3.0");
+        backend->log(ABYSSAL_LOG_ERROR, "CDRMRenderer: eglCreateContext failed with GLES 3.2, retrying GLES 3.0");
 
         attrs = attrsNoVer;
         attrs.push_back(EGL_CONTEXT_MAJOR_VERSION);
@@ -508,7 +508,7 @@ void CDRMRenderer::initContext() {
 
         egl.context = eglCreateContext(egl.display, EGL_NO_CONFIG_KHR, EGL_NO_CONTEXT, attrs.data());
         if (egl.context == EGL_NO_CONTEXT) {
-            backend->log(AQ_LOG_ERROR, "CDRMRenderer: Can't create renderer, eglCreateContext failed with both GLES 3.2 and GLES 3.0");
+            backend->log(ABYSSAL_LOG_ERROR, "CDRMRenderer: Can't create renderer, eglCreateContext failed with both GLES 3.2 and GLES 3.0");
             return;
         }
     }
@@ -517,9 +517,9 @@ void CDRMRenderer::initContext() {
         EGLint priority = EGL_CONTEXT_PRIORITY_MEDIUM_IMG;
         eglQueryContext(egl.display, egl.context, EGL_CONTEXT_PRIORITY_LEVEL_IMG, &priority);
         if (priority != EGL_CONTEXT_PRIORITY_HIGH_IMG)
-            backend->log(AQ_LOG_DEBUG, "CDRMRenderer: Failed to get a high priority context");
+            backend->log(ABYSSAL_LOG_DEBUG, "CDRMRenderer: Failed to get a high priority context");
         else
-            backend->log(AQ_LOG_DEBUG, "CDRMRenderer: Got a high priority context");
+            backend->log(ABYSSAL_LOG_DEBUG, "CDRMRenderer: Got a high priority context");
     }
 
     CEglContextGuard eglContext(*this);
@@ -533,11 +533,11 @@ void CDRMRenderer::initContext() {
         free(drmName);
     }
 
-    backend->log(AQ_LOG_DEBUG, std::format("Creating CDRMRenderer on gpu {}", gpuName));
-    backend->log(AQ_LOG_DEBUG, std::format("Using: {}", (char*)glGetString(GL_VERSION)));
-    backend->log(AQ_LOG_DEBUG, std::format("Vendor: {}", (char*)glGetString(GL_VENDOR)));
-    backend->log(AQ_LOG_DEBUG, std::format("Renderer: {}", (char*)glGetString(GL_RENDERER)));
-    backend->log(AQ_LOG_DEBUG, std::format("Supported context extensions: ({}) {}", std::count(EGLEXTENSIONS.begin(), EGLEXTENSIONS.end(), ' '), EGLEXTENSIONS));
+    backend->log(ABYSSAL_LOG_DEBUG, std::format("Creating CDRMRenderer on gpu {}", gpuName));
+    backend->log(ABYSSAL_LOG_DEBUG, std::format("Using: {}", (char*)glGetString(GL_VERSION)));
+    backend->log(ABYSSAL_LOG_DEBUG, std::format("Vendor: {}", (char*)glGetString(GL_VENDOR)));
+    backend->log(ABYSSAL_LOG_DEBUG, std::format("Renderer: {}", (char*)glGetString(GL_RENDERER)));
+    backend->log(ABYSSAL_LOG_DEBUG, std::format("Supported context extensions: ({}) {}", std::count(EGLEXTENSIONS.begin(), EGLEXTENSIONS.end(), ' '), EGLEXTENSIONS));
 
     exts.EXT_read_format_bgra        = EGLEXTENSIONS.contains("GL_EXT_read_format_bgra");
     exts.EXT_texture_format_BGRA8888 = EGLEXTENSIONS.contains("GL_EXT_texture_format_BGRA8888");
@@ -547,11 +547,11 @@ void CDRMRenderer::initResources() {
     CEglContextGuard eglContext(*this);
 
     if (!exts.EXT_image_dma_buf_import || !initDRMFormats())
-        backend->log(AQ_LOG_ERROR, "CDRMRenderer: initDRMFormats failed, dma-buf won't work");
+        backend->log(ABYSSAL_LOG_ERROR, "CDRMRenderer: initDRMFormats failed, dma-buf won't work");
 
     shader.program = createProgram(VERT_SRC, FRAG_SRC);
     if (shader.program == 0)
-        backend->log(AQ_LOG_ERROR, "CDRMRenderer: texture shader failed");
+        backend->log(ABYSSAL_LOG_ERROR, "CDRMRenderer: texture shader failed");
 
     shader.proj      = glGetUniformLocation(shader.program, "proj");
     shader.posAttrib = glGetAttribLocation(shader.program, "pos");
@@ -561,7 +561,7 @@ void CDRMRenderer::initResources() {
 
     shaderExt.program = createProgram(VERT_SRC, FRAG_SRC_EXT);
     if (shaderExt.program == 0)
-        backend->log(AQ_LOG_ERROR, "CDRMRenderer: external texture shader failed");
+        backend->log(ABYSSAL_LOG_ERROR, "CDRMRenderer: external texture shader failed");
 
     shaderExt.proj      = glGetUniformLocation(shaderExt.program, "proj");
     shaderExt.posAttrib = glGetAttribLocation(shaderExt.program, "pos");
@@ -579,13 +579,13 @@ SP<CDRMRenderer> CDRMRenderer::attempt(SP<CBackend> backend_, int drmFD) {
     renderer->loadEGLAPI();
 
     if (!renderer->exts.EXT_platform_device) {
-        backend_->log(AQ_LOG_ERROR, "CDRMRenderer(drm): Can't create renderer, EGL doesn't support EXT_platform_device");
+        backend_->log(ABYSSAL_LOG_ERROR, "CDRMRenderer(drm): Can't create renderer, EGL doesn't support EXT_platform_device");
         return nullptr;
     }
 
     EGLDeviceEXT device = renderer->eglDeviceFromDRMFD(drmFD);
     if (device == EGL_NO_DEVICE_EXT) {
-        backend_->log(AQ_LOG_ERROR, "CDRMRenderer(drm): Can't create renderer, no matching devices found");
+        backend_->log(ABYSSAL_LOG_ERROR, "CDRMRenderer(drm): Can't create renderer, no matching devices found");
         return nullptr;
     }
 
@@ -599,7 +599,7 @@ SP<CDRMRenderer> CDRMRenderer::attempt(SP<CBackend> backend_, int drmFD) {
 
     renderer->egl.display = renderer->proc.eglGetPlatformDisplayEXT(EGL_PLATFORM_DEVICE_EXT, device, attrs.data());
     if (renderer->egl.display == EGL_NO_DISPLAY) {
-        backend_->log(AQ_LOG_ERROR, "CDRMRenderer: fail, eglGetPlatformDisplayEXT failed");
+        backend_->log(ABYSSAL_LOG_ERROR, "CDRMRenderer: fail, eglGetPlatformDisplayEXT failed");
         return nullptr;
     }
 
@@ -612,7 +612,7 @@ SP<CDRMRenderer> CDRMRenderer::attempt(SP<CBackend> backend_, int drmFD) {
     return renderer;
 }
 
-SP<CDRMRenderer> CDRMRenderer::attempt(SP<CBackend> backend_, Hyprutils::Memory::CSharedPointer<CGBMAllocator> allocator_) {
+SP<CDRMRenderer> CDRMRenderer::attempt(SP<CBackend> backend_, Abyssutils::Memory::CSharedPointer<CGBMAllocator> allocator_) {
     SP<CDRMRenderer> renderer = SP<CDRMRenderer>(new CDRMRenderer());
     renderer->drmFD           = allocator_->drmFD();
     renderer->backend         = backend_;
@@ -621,7 +621,7 @@ SP<CDRMRenderer> CDRMRenderer::attempt(SP<CBackend> backend_, Hyprutils::Memory:
     renderer->loadEGLAPI();
 
     if (!renderer->exts.KHR_platform_gbm) {
-        backend_->log(AQ_LOG_ERROR, "CDRMRenderer(gbm): Can't create renderer, EGL doesn't support KHR_platform_gbm");
+        backend_->log(ABYSSAL_LOG_ERROR, "CDRMRenderer(gbm): Can't create renderer, EGL doesn't support KHR_platform_gbm");
         return nullptr;
     }
 
@@ -635,7 +635,7 @@ SP<CDRMRenderer> CDRMRenderer::attempt(SP<CBackend> backend_, Hyprutils::Memory:
 
     renderer->egl.display = renderer->proc.eglGetPlatformDisplayEXT(EGL_PLATFORM_GBM_KHR, allocator_->gbmDevice, attrs.data());
     if (renderer->egl.display == EGL_NO_DISPLAY) {
-        backend_->log(AQ_LOG_ERROR, "CDRMRenderer: fail, eglGetPlatformDisplayEXT failed");
+        backend_->log(ABYSSAL_LOG_ERROR, "CDRMRenderer: fail, eglGetPlatformDisplayEXT failed");
         return nullptr;
     }
 
@@ -655,7 +655,7 @@ CEglContextGuard::CEglContextGuard(const CDRMRenderer& renderer_) : renderer(ren
     savedEGLState.read    = eglGetCurrentSurface(EGL_READ);
 
     if (!eglMakeCurrent(renderer.egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, renderer.egl.context))
-        renderer.backend->log(AQ_LOG_WARNING, "CDRMRenderer: setEGL eglMakeCurrent failed");
+        renderer.backend->log(ABYSSAL_LOG_WARNING, "CDRMRenderer: setEGL eglMakeCurrent failed");
 }
 
 CEglContextGuard::~CEglContextGuard() {
@@ -666,7 +666,7 @@ CEglContextGuard::~CEglContextGuard() {
         return;
 
     if (!eglMakeCurrent(dpy, savedEGLState.draw, savedEGLState.read, savedEGLState.context))
-        renderer.backend->log(AQ_LOG_WARNING, "CDRMRenderer: restoreEGL eglMakeCurrent failed");
+        renderer.backend->log(ABYSSAL_LOG_WARNING, "CDRMRenderer: restoreEGL eglMakeCurrent failed");
 }
 
 EGLImageKHR CDRMRenderer::createEGLImage(const SDMABUFAttrs& attrs) {
@@ -680,7 +680,7 @@ EGLImageKHR CDRMRenderer::createEGLImage(const SDMABUFAttrs& attrs) {
     attribs[idx++] = EGL_LINUX_DRM_FOURCC_EXT;
     attribs[idx++] = attrs.format;
 
-    TRACE(backend->log(AQ_LOG_TRACE,
+    TRACE(backend->log(ABYSSAL_LOG_TRACE,
                        std::format("EGL: createEGLImage: size {} with format {} and modifier 0x{:x} : {}", attrs.size, fourccToName(attrs.format), attrs.modifier,
                                    drmModifierToName(attrs.modifier))));
 
@@ -734,21 +734,21 @@ EGLImageKHR CDRMRenderer::createEGLImage(const SDMABUFAttrs& attrs) {
 
     EGLImageKHR image = proc.eglCreateImageKHR(egl.display, EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT, nullptr, attribs.data());
     if (image == EGL_NO_IMAGE_KHR) {
-        backend->log(AQ_LOG_ERROR, std::format("EGL: EGLCreateImageKHR failed: {}", eglGetError()));
+        backend->log(ABYSSAL_LOG_ERROR, std::format("EGL: EGLCreateImageKHR failed: {}", eglGetError()));
         return EGL_NO_IMAGE_KHR;
     }
 
     return image;
 }
 
-CGLTex CDRMRenderer::glTex(Hyprutils::Memory::CSharedPointer<IBuffer> buffa) {
+CGLTex CDRMRenderer::glTex(Abyssutils::Memory::CSharedPointer<IBuffer> buffa) {
     CGLTex      tex;
 
     const auto& dma = buffa->dmabuf();
 
     tex.image = createEGLImage(dma);
     if (tex.image == EGL_NO_IMAGE_KHR) {
-        backend->log(AQ_LOG_ERROR, std::format("EGL (glTex): createEGLImage failed: {}", eglGetError()));
+        backend->log(ABYSSAL_LOG_ERROR, std::format("EGL (glTex): createEGLImage failed: {}", eglGetError()));
         return tex;
     }
 
@@ -757,7 +757,7 @@ CGLTex CDRMRenderer::glTex(Hyprutils::Memory::CSharedPointer<IBuffer> buffa) {
         if (fmt.drmFormat != dma.format || fmt.modifier != dma.modifier)
             continue;
 
-        backend->log(AQ_LOG_DEBUG, std::format("CDRMRenderer::glTex: found format+mod, external = {}", fmt.external));
+        backend->log(ABYSSAL_LOG_DEBUG, std::format("CDRMRenderer::glTex: found format+mod, external = {}", fmt.external));
         external = fmt.external;
         break;
     }
@@ -777,7 +777,7 @@ CGLTex CDRMRenderer::glTex(Hyprutils::Memory::CSharedPointer<IBuffer> buffa) {
 
 constexpr GLenum PIXEL_BUFFER_FORMAT = GL_RGBA;
 
-void             CDRMRenderer::readBuffer(Hyprutils::Memory::CSharedPointer<IBuffer> buf, std::span<uint8_t> out) {
+void             CDRMRenderer::readBuffer(Abyssutils::Memory::CSharedPointer<IBuffer> buf, std::span<uint8_t> out) {
     CEglContextGuard eglContext(*this);
     auto             att = buf->attachments.get<CDRMRendererBufferOutputAttachment>();
     if (!att || att->renderer != self) {
@@ -789,7 +789,7 @@ void             CDRMRenderer::readBuffer(Hyprutils::Memory::CSharedPointer<IBuf
     if (!att->eglImage) {
         att->eglImage = createEGLImage(dma);
         if (att->eglImage == EGL_NO_IMAGE_KHR) {
-            backend->log(AQ_LOG_ERROR, std::format("EGL (readBuffer): createEGLImage failed: {}", eglGetError()));
+            backend->log(ABYSSAL_LOG_ERROR, std::format("EGL (readBuffer): createEGLImage failed: {}", eglGetError()));
             return;
         }
 
@@ -803,7 +803,7 @@ void             CDRMRenderer::readBuffer(Hyprutils::Memory::CSharedPointer<IBuf
         GLCALL(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, att->rbo));
 
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-            backend->log(AQ_LOG_ERROR, std::format("EGL (readBuffer): glCheckFramebufferStatus failed: {}", glGetError()));
+            backend->log(ABYSSAL_LOG_ERROR, std::format("EGL (readBuffer): glCheckFramebufferStatus failed: {}", glGetError()));
             return;
         }
     }
@@ -815,12 +815,12 @@ void             CDRMRenderer::readBuffer(Hyprutils::Memory::CSharedPointer<IBuf
 }
 
 void CDRMRenderer::waitOnSync(int fd) {
-    TRACE(backend->log(AQ_LOG_TRACE, std::format("EGL (waitOnSync): attempting to wait on fd {}", fd)));
+    TRACE(backend->log(ABYSSAL_LOG_TRACE, std::format("EGL (waitOnSync): attempting to wait on fd {}", fd)));
 
     std::array<EGLint, 3> attribs;
     int                   dupFd = fcntl(fd, F_DUPFD_CLOEXEC, 0);
     if (dupFd < 0) {
-        backend->log(AQ_LOG_TRACE, "EGL (waitOnSync): failed to dup fd for wait");
+        backend->log(ABYSSAL_LOG_TRACE, "EGL (waitOnSync): failed to dup fd for wait");
         return;
     }
 
@@ -830,7 +830,7 @@ void CDRMRenderer::waitOnSync(int fd) {
 
     EGLSyncKHR sync = proc.eglCreateSyncKHR(egl.display, EGL_SYNC_NATIVE_FENCE_ANDROID, attribs.data());
     if (sync == EGL_NO_SYNC_KHR) {
-        TRACE(backend->log(AQ_LOG_TRACE, "EGL (waitOnSync): failed to create an egl sync for explicit"));
+        TRACE(backend->log(ABYSSAL_LOG_TRACE, "EGL (waitOnSync): failed to create an egl sync for explicit"));
         if (dupFd >= 0)
             close(dupFd);
         return;
@@ -839,25 +839,25 @@ void CDRMRenderer::waitOnSync(int fd) {
     // we got a sync, now we just tell egl to wait before sampling
     if (proc.eglWaitSyncKHR(egl.display, sync, 0) != EGL_TRUE) {
         if (proc.eglDestroySyncKHR(egl.display, sync) != EGL_TRUE)
-            TRACE(backend->log(AQ_LOG_TRACE, "EGL (waitOnSync): failed to destroy sync"));
+            TRACE(backend->log(ABYSSAL_LOG_TRACE, "EGL (waitOnSync): failed to destroy sync"));
 
-        TRACE(backend->log(AQ_LOG_TRACE, "EGL (waitOnSync): failed to wait on the sync object"));
+        TRACE(backend->log(ABYSSAL_LOG_TRACE, "EGL (waitOnSync): failed to wait on the sync object"));
         return;
     }
 
     if (proc.eglDestroySyncKHR(egl.display, sync) != EGL_TRUE)
-        TRACE(backend->log(AQ_LOG_TRACE, "EGL (waitOnSync): failed to destroy sync"));
+        TRACE(backend->log(ABYSSAL_LOG_TRACE, "EGL (waitOnSync): failed to destroy sync"));
 }
 
 int CDRMRenderer::recreateBlitSync() {
-    TRACE(backend->log(AQ_LOG_TRACE, "EGL (recreateBlitSync): recreating blit sync"));
+    TRACE(backend->log(ABYSSAL_LOG_TRACE, "EGL (recreateBlitSync): recreating blit sync"));
 
     if (egl.lastBlitSync) {
-        TRACE(backend->log(AQ_LOG_TRACE, std::format("EGL (recreateBlitSync): cleaning up old sync (fd {})", egl.lastBlitSyncFD)));
+        TRACE(backend->log(ABYSSAL_LOG_TRACE, std::format("EGL (recreateBlitSync): cleaning up old sync (fd {})", egl.lastBlitSyncFD)));
 
         // cleanup last sync
         if (proc.eglDestroySyncKHR(egl.display, egl.lastBlitSync) != EGL_TRUE)
-            TRACE(backend->log(AQ_LOG_TRACE, "EGL (recreateBlitSync): failed to destroy old sync"));
+            TRACE(backend->log(ABYSSAL_LOG_TRACE, "EGL (recreateBlitSync): failed to destroy old sync"));
 
         if (egl.lastBlitSyncFD >= 0)
             close(egl.lastBlitSyncFD);
@@ -868,7 +868,7 @@ int CDRMRenderer::recreateBlitSync() {
 
     EGLSyncKHR sync = proc.eglCreateSyncKHR(egl.display, EGL_SYNC_NATIVE_FENCE_ANDROID, nullptr);
     if (sync == EGL_NO_SYNC_KHR) {
-        TRACE(backend->log(AQ_LOG_TRACE, "EGL (recreateBlitSync): failed to create an egl sync for explicit"));
+        TRACE(backend->log(ABYSSAL_LOG_TRACE, "EGL (recreateBlitSync): failed to create an egl sync for explicit"));
         return -1;
     }
 
@@ -877,16 +877,16 @@ int CDRMRenderer::recreateBlitSync() {
 
     int fd = proc.eglDupNativeFenceFDANDROID(egl.display, sync);
     if (fd == EGL_NO_NATIVE_FENCE_FD_ANDROID) {
-        TRACE(backend->log(AQ_LOG_TRACE, "EGL (recreateBlitSync): failed to dup egl fence fd"));
+        TRACE(backend->log(ABYSSAL_LOG_TRACE, "EGL (recreateBlitSync): failed to dup egl fence fd"));
         if (proc.eglDestroySyncKHR(egl.display, sync) != EGL_TRUE)
-            TRACE(backend->log(AQ_LOG_TRACE, "EGL (recreateBlitSync): failed to destroy new sync"));
+            TRACE(backend->log(ABYSSAL_LOG_TRACE, "EGL (recreateBlitSync): failed to destroy new sync"));
         return -1;
     }
 
     egl.lastBlitSync   = sync;
     egl.lastBlitSyncFD = fd;
 
-    TRACE(backend->log(AQ_LOG_TRACE, std::format("EGL (recreateBlitSync): success, new fence exported with fd {}", fd)));
+    TRACE(backend->log(ABYSSAL_LOG_TRACE, std::format("EGL (recreateBlitSync): success, new fence exported with fd {}", fd)));
 
     return fd;
 }
@@ -897,13 +897,13 @@ void CDRMRenderer::clearBuffer(IBuffer* buf) {
     GLuint           rboID = 0, fboID = 0;
 
     if (!dmabuf.success) {
-        backend->log(AQ_LOG_ERROR, "EGL (clear): cannot clear a non-dmabuf");
+        backend->log(ABYSSAL_LOG_ERROR, "EGL (clear): cannot clear a non-dmabuf");
         return;
     }
 
     auto rboImage = createEGLImage(dmabuf);
     if (rboImage == EGL_NO_IMAGE_KHR) {
-        backend->log(AQ_LOG_ERROR, std::format("EGL (clear): createEGLImage failed: {}", eglGetError()));
+        backend->log(ABYSSAL_LOG_ERROR, std::format("EGL (clear): createEGLImage failed: {}", eglGetError()));
         return;
     }
 
@@ -919,7 +919,7 @@ void CDRMRenderer::clearBuffer(IBuffer* buf) {
     GLCALL(glBindRenderbuffer(GL_RENDERBUFFER, rboID));
     GLCALL(glBindFramebuffer(GL_FRAMEBUFFER, fboID));
 
-    TRACE(backend->log(AQ_LOG_TRACE, std::format("EGL (clear): fbo {} rbo {}", fboID, rboID)));
+    TRACE(backend->log(ABYSSAL_LOG_TRACE, std::format("EGL (clear): fbo {} rbo {}", fboID, rboID)));
 
     glClearColor(0.F, 0.F, 0.F, 1.F);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -935,14 +935,14 @@ void CDRMRenderer::clearBuffer(IBuffer* buf) {
 
 CDRMRenderer::SBlitResult CDRMRenderer::blit(SP<IBuffer> from, SP<IBuffer> to, SP<CDRMRenderer> primaryRenderer, int waitFD) {
     if (!from || !to) {
-        backend->log(AQ_LOG_ERROR, "EGL (blit): null source or destination buffer");
+        backend->log(ABYSSAL_LOG_ERROR, "EGL (blit): null source or destination buffer");
         return {};
     }
 
     CEglContextGuard eglContext(*this);
 
     if (from->dmabuf().size != to->dmabuf().size) {
-        backend->log(AQ_LOG_ERROR, "EGL (blit): buffer sizes mismatched");
+        backend->log(ABYSSAL_LOG_ERROR, "EGL (blit): buffer sizes mismatched");
         return {};
     }
 
@@ -953,7 +953,7 @@ CDRMRenderer::SBlitResult CDRMRenderer::blit(SP<IBuffer> from, SP<IBuffer> to, S
 
     // firstly, get a texture from the from buffer
     // if it has an attachment, use that
-    // both from and to have the same AQ_ATTACHMENT_DRM_RENDERER_DATA.
+    // both from and to have the same ABYSSAL_ATTACHMENT_DRM_RENDERER_DATA.
     // Those buffers always come from different swapchains, so it's OK.
 
     WP<CGLTex>         fromTex;
@@ -962,19 +962,19 @@ CDRMRenderer::SBlitResult CDRMRenderer::blit(SP<IBuffer> from, SP<IBuffer> to, S
     {
         auto attachment = from->attachments.get<CDRMRendererBufferInputAttachment>();
         if (attachment && attachment->renderer == self) {
-            TRACE(backend->log(AQ_LOG_TRACE, "EGL (blit): From attachment found"));
+            TRACE(backend->log(ABYSSAL_LOG_TRACE, "EGL (blit): From attachment found"));
             fromTex         = attachment->tex;
             intermediateBuf = attachment->intermediateBuf;
         }
 
         if ((!fromTex || !fromTex->image) && intermediateBuf.empty()) {
-            backend->log(AQ_LOG_DEBUG, "EGL (blit): No attachment in from, creating a new image");
+            backend->log(ABYSSAL_LOG_DEBUG, "EGL (blit): No attachment in from, creating a new image");
 
             attachment = makeShared<CDRMRendererBufferInputAttachment>(self, glTex(from), std::vector<uint8_t>());
             from->attachments.add(attachment);
 
             if (!attachment->tex->image && primaryRenderer) {
-                backend->log(AQ_LOG_DEBUG, "EGL (blit): Failed to create image from source buffer directly, allocating intermediate buffer");
+                backend->log(ABYSSAL_LOG_DEBUG, "EGL (blit): Failed to create image from source buffer directly, allocating intermediate buffer");
                 static_assert(PIXEL_BUFFER_FORMAT == GL_RGBA); // If the pixel buffer format changes, the below size calculation probably needs to as well.
                 attachment->intermediateBuf.resize(fromDma.size.x * fromDma.size.y * 4);
                 intermediateBuf         = attachment->intermediateBuf;
@@ -991,7 +991,7 @@ CDRMRenderer::SBlitResult CDRMRenderer::blit(SP<IBuffer> from, SP<IBuffer> to, S
         }
     }
 
-    TRACE(backend->log(AQ_LOG_TRACE,
+    TRACE(backend->log(ABYSSAL_LOG_TRACE,
                        std::format("EGL (blit): fromTex id {}, image 0x{:x}, target {}", fromTex->texid, (uintptr_t)fromTex->image,
                                    fromTex->target == GL_TEXTURE_2D ? "GL_TEXTURE_2D" : "GL_TEXTURE_EXTERNAL_OES")));
 
@@ -1003,25 +1003,25 @@ CDRMRenderer::SBlitResult CDRMRenderer::blit(SP<IBuffer> from, SP<IBuffer> to, S
     const auto& toDma = to->dmabuf();
 
     if (!verifyDestinationDMABUF(toDma)) {
-        backend->log(AQ_LOG_ERROR, "EGL (blit): failed to blit: destination dmabuf unsupported");
+        backend->log(ABYSSAL_LOG_ERROR, "EGL (blit): failed to blit: destination dmabuf unsupported");
         return {};
     }
 
     {
         auto attachment = to->attachments.get<CDRMRendererBufferOutputAttachment>();
         if (attachment && attachment->renderer == self) {
-            TRACE(backend->log(AQ_LOG_TRACE, "EGL (blit): To attachment found"));
+            TRACE(backend->log(ABYSSAL_LOG_TRACE, "EGL (blit): To attachment found"));
             rboImage = attachment->eglImage;
             fboID    = attachment->fbo;
             rboID    = attachment->rbo;
         }
 
         if (!rboImage) {
-            backend->log(AQ_LOG_DEBUG, "EGL (blit): No attachment in to, creating a new image");
+            backend->log(ABYSSAL_LOG_DEBUG, "EGL (blit): No attachment in to, creating a new image");
 
             rboImage = createEGLImage(toDma);
             if (rboImage == EGL_NO_IMAGE_KHR) {
-                backend->log(AQ_LOG_ERROR, std::format("EGL (blit): createEGLImage failed: {}", eglGetError()));
+                backend->log(ABYSSAL_LOG_ERROR, std::format("EGL (blit): createEGLImage failed: {}", eglGetError()));
                 return {};
             }
 
@@ -1035,7 +1035,7 @@ CDRMRenderer::SBlitResult CDRMRenderer::blit(SP<IBuffer> from, SP<IBuffer> to, S
             GLCALL(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rboID));
 
             if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-                backend->log(AQ_LOG_ERROR, std::format("EGL (blit): glCheckFramebufferStatus failed: {}", glGetError()));
+                backend->log(ABYSSAL_LOG_ERROR, std::format("EGL (blit): glCheckFramebufferStatus failed: {}", glGetError()));
                 return {};
             }
 
@@ -1043,12 +1043,12 @@ CDRMRenderer::SBlitResult CDRMRenderer::blit(SP<IBuffer> from, SP<IBuffer> to, S
         }
     }
 
-    TRACE(backend->log(AQ_LOG_TRACE, std::format("EGL (blit): rboImage 0x{:x}", (uintptr_t)rboImage)));
+    TRACE(backend->log(ABYSSAL_LOG_TRACE, std::format("EGL (blit): rboImage 0x{:x}", (uintptr_t)rboImage)));
 
     GLCALL(glBindRenderbuffer(GL_RENDERBUFFER, rboID));
     GLCALL(glBindFramebuffer(GL_FRAMEBUFFER, fboID));
 
-    TRACE(backend->log(AQ_LOG_TRACE, std::format("EGL (blit): fbo {} rbo {}", fboID, rboID)));
+    TRACE(backend->log(ABYSSAL_LOG_TRACE, std::format("EGL (blit): fbo {} rbo {}", fboID, rboID)));
 
     glClearColor(0.77F, 0.F, 0.74F, 1.F);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -1056,7 +1056,7 @@ CDRMRenderer::SBlitResult CDRMRenderer::blit(SP<IBuffer> from, SP<IBuffer> to, S
     // done, let's render the texture to the rbo
     CBox renderBox = {{}, toDma.size};
 
-    TRACE(backend->log(AQ_LOG_TRACE, std::format("EGL (blit): box size {}", renderBox.size())));
+    TRACE(backend->log(ABYSSAL_LOG_TRACE, std::format("EGL (blit): box size {}", renderBox.size())));
 
     float mtx[9];
     float base[9];
@@ -1067,12 +1067,12 @@ CDRMRenderer::SBlitResult CDRMRenderer::blit(SP<IBuffer> from, SP<IBuffer> to, S
 
     // KMS uses flipped y, we have to do FLIPPED_180
     matrixTranslate(base, toDma.size.x / 2.0, toDma.size.y / 2.0);
-    matrixTransform(base, HYPRUTILS_TRANSFORM_FLIPPED_180);
+    matrixTransform(base, ABYSSUTILS_TRANSFORM_FLIPPED_180);
     matrixTranslate(base, -toDma.size.x / 2.0, -toDma.size.y / 2.0);
 
-    projectBox(mtx, renderBox, HYPRUTILS_TRANSFORM_FLIPPED_180, 0, base);
+    projectBox(mtx, renderBox, ABYSSUTILS_TRANSFORM_FLIPPED_180, 0, base);
 
-    matrixProjection(monitorProj, toDma.size.x, toDma.size.y, HYPRUTILS_TRANSFORM_FLIPPED_180);
+    matrixProjection(monitorProj, toDma.size.x, toDma.size.y, ABYSSUTILS_TRANSFORM_FLIPPED_180);
 
     float glMtx[9];
     matrixMultiply(glMtx, monitorProj, mtx);
@@ -1121,14 +1121,14 @@ bool CDRMRenderer::verifyDestinationDMABUF(const SDMABUFAttrs& attrs) {
             continue;
 
         if (fmt.modifier != DRM_FORMAT_INVALID && fmt.external) {
-            backend->log(AQ_LOG_ERROR, "EGL (verifyDestinationDMABUF): FAIL, format is external-only");
+            backend->log(ABYSSAL_LOG_ERROR, "EGL (verifyDestinationDMABUF): FAIL, format is external-only");
             return false;
         }
 
         return true;
     }
 
-    backend->log(AQ_LOG_ERROR, "EGL (verifyDestinationDMABUF): FAIL, format is unsupported by EGL");
+    backend->log(ABYSSAL_LOG_ERROR, "EGL (verifyDestinationDMABUF): FAIL, format is unsupported by EGL");
     return false;
 }
 
@@ -1167,7 +1167,7 @@ void CGLTex::setTexParameter(GLenum pname, GLint param) {
     glTexParameteri(target, pname, param);
 }
 
-CDRMRendererBufferInputAttachment::CDRMRendererBufferInputAttachment(Hyprutils::Memory::CWeakPointer<CDRMRenderer> renderer_, CGLTex&& tex_,
+CDRMRendererBufferInputAttachment::CDRMRendererBufferInputAttachment(Abyssutils::Memory::CWeakPointer<CDRMRenderer> renderer_, CGLTex&& tex_,
                                                                      std::vector<uint8_t> intermediateBuf_) :
     tex(makeUnique<CGLTex>(std::move(tex_))), intermediateBuf(intermediateBuf_), renderer(renderer_) {}
 
@@ -1178,7 +1178,7 @@ CDRMRendererBufferInputAttachment::~CDRMRendererBufferInputAttachment() {
     auto&            backend = renderer->backend;
     CEglContextGuard eglContext(*renderer);
 
-    TRACE(backend->log(AQ_LOG_TRACE, std::format("EGL (~CDRMRendererBufferInputAttachment): dropping tex {}", tex ? (int)tex->texid : -1)));
+    TRACE(backend->log(ABYSSAL_LOG_TRACE, std::format("EGL (~CDRMRendererBufferInputAttachment): dropping tex {}", tex ? (int)tex->texid : -1)));
 
     if (tex && tex->texid)
         GLCALL(glDeleteTextures(1, &tex->texid));
@@ -1186,7 +1186,7 @@ CDRMRendererBufferInputAttachment::~CDRMRendererBufferInputAttachment() {
         renderer->proc.eglDestroyImageKHR(renderer->egl.display, tex->image);
 }
 
-CDRMRendererBufferOutputAttachment::CDRMRendererBufferOutputAttachment(Hyprutils::Memory::CWeakPointer<CDRMRenderer> renderer_, EGLImageKHR image, GLuint fbo_, GLuint rbo_) :
+CDRMRendererBufferOutputAttachment::CDRMRendererBufferOutputAttachment(Abyssutils::Memory::CWeakPointer<CDRMRenderer> renderer_, EGLImageKHR image, GLuint fbo_, GLuint rbo_) :
     eglImage(image), fbo(fbo_), rbo(rbo_), renderer(renderer_) {}
 
 CDRMRendererBufferOutputAttachment::~CDRMRendererBufferOutputAttachment() {
@@ -1196,7 +1196,7 @@ CDRMRendererBufferOutputAttachment::~CDRMRendererBufferOutputAttachment() {
     auto&            backend = renderer->backend;
     CEglContextGuard eglContext(*renderer);
 
-    TRACE(backend->log(AQ_LOG_TRACE, std::format("EGL (~CDRMRendererBufferOutputAttachment): dropping fbo {} rbo {} image 0x{:x}", fbo, rbo, (uintptr_t)eglImage)));
+    TRACE(backend->log(ABYSSAL_LOG_TRACE, std::format("EGL (~CDRMRendererBufferOutputAttachment): dropping fbo {} rbo {} image 0x{:x}", fbo, rbo, (uintptr_t)eglImage)));
 
     if (rbo)
         GLCALL(glDeleteRenderbuffers(1, &rbo));

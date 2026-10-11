@@ -1,10 +1,10 @@
 #pragma once
 
-#include <aquamarine/backend/Backend.hpp>
+#include <abyssal/backend/Backend.hpp>
 
-#include <hyprutils/cli/Logger.hpp>
+#include <abyssutils/cli/Logger.hpp>
 
-namespace Aquamarine {
+namespace Abyssal {
     class CLogger {
       public:
         CLogger();
@@ -32,6 +32,6 @@ namespace Aquamarine {
         }
 
         std::function<void(eBackendLogLevel, std::string)>                   m_logFn;
-        Hyprutils::Memory::CSharedPointer<Hyprutils::CLI::CLoggerConnection> m_loggerConnection;
+        Abyssutils::Memory::CSharedPointer<Abyssutils::CLI::CLoggerConnection> m_loggerConnection;
     };
 };

@@ -1,6 +1,6 @@
-#include <aquamarine/backend/FrameScheduler.hpp>
+#include <abyssal/backend/FrameScheduler.hpp>
 
-using namespace Aquamarine;
+using namespace Abyssal;
 
 void CFrameScheduler::onFrameSubmitted() {
     m_pending = true;

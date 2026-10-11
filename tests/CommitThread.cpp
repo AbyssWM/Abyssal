@@ -10,8 +10,8 @@
 #include <poll.h>
 #include <vector>
 
-using namespace Aquamarine;
-using namespace Hyprutils::Memory;
+using namespace Abyssal;
+using namespace Abyssutils::Memory;
 using namespace std::chrono_literals;
 #define UP CUniquePointer
 
@@ -138,13 +138,13 @@ int main() {
     auto results = thread->drainResults();
     EXPECT(results.size(), 1U);
     EXPECT(resultFor(results, FIRST) != nullptr, true);
-    EXPECT(resultFor(results, FIRST)->status, CDRMCommitThread::AQ_DRM_COMMIT_THREAD_SUBMITTED);
+    EXPECT(resultFor(results, FIRST)->status, CDRMCommitThread::ABYSSAL_DRM_COMMIT_THREAD_SUBMITTED);
     EXPECT(thread->cancelOwner(2), 1U);
     EXPECT(waitForResults(thread->completionFD()), true);
     results = thread->drainResults();
     EXPECT(results.size(), 1U);
     EXPECT(resultFor(results, SECOND) != nullptr, true);
-    EXPECT(resultFor(results, SECOND)->status, CDRMCommitThread::AQ_DRM_COMMIT_THREAD_CANCELLED);
+    EXPECT(resultFor(results, SECOND)->status, CDRMCommitThread::ABYSSAL_DRM_COMMIT_THREAD_CANCELLED);
     EXPECT(resultFor(results, SECOND)->error, ECANCELED);
 
     const auto INDEPENDENT = enqueue(*thread, makeRequest(3, 20, 300));
@@ -160,7 +160,7 @@ int main() {
     EXPECT(waitForResults(thread->completionFD()), true);
     results = thread->drainResults();
     EXPECT(resultFor(results, BLOCKED) != nullptr, true);
-    EXPECT(resultFor(results, BLOCKED)->status, CDRMCommitThread::AQ_DRM_COMMIT_THREAD_CANCELLED);
+    EXPECT(resultFor(results, BLOCKED)->status, CDRMCommitThread::ABYSSAL_DRM_COMMIT_THREAD_CANCELLED);
 
     EXPECT(thread->releaseQueue(10, FIRST), true);
     EXPECT(thread->releaseQueue(10, FIRST), false);
@@ -179,7 +179,7 @@ int main() {
     EXPECT(waitForResults(thread->completionFD()), true);
     results = thread->drainResults();
     EXPECT(resultFor(results, FAILING) != nullptr, true);
-    EXPECT(resultFor(results, FAILING)->status, CDRMCommitThread::AQ_DRM_COMMIT_THREAD_FAILED);
+    EXPECT(resultFor(results, FAILING)->status, CDRMCommitThread::ABYSSAL_DRM_COMMIT_THREAD_FAILED);
     EXPECT(resultFor(results, FAILING)->error, EINVAL);
 
     auto late                = makeRequest(7, 30, 700);
@@ -216,8 +216,8 @@ int main() {
     EXPECT(results.at(0).request->id, ACTIVE);
     EXPECT(results.at(1).request->id, ACTIVE_FOLLOWER);
     EXPECT(resultFor(results, ACTIVE) != nullptr, true);
-    EXPECT(resultFor(results, ACTIVE)->status, CDRMCommitThread::AQ_DRM_COMMIT_THREAD_SUBMITTED);
-    EXPECT(resultFor(results, ACTIVE_FOLLOWER)->status, CDRMCommitThread::AQ_DRM_COMMIT_THREAD_CANCELLED);
+    EXPECT(resultFor(results, ACTIVE)->status, CDRMCommitThread::ABYSSAL_DRM_COMMIT_THREAD_SUBMITTED);
+    EXPECT(resultFor(results, ACTIVE_FOLLOWER)->status, CDRMCommitThread::ABYSSAL_DRM_COMMIT_THREAD_CANCELLED);
 
     auto cancelledOwner = makeRequest(9, 50, 901);
     EXPECT(thread->enqueue(std::move(cancelledOwner)).has_value(), false);
@@ -230,7 +230,7 @@ int main() {
     results = thread->stopAndDrain();
     EXPECT(thread->accepting(), false);
     EXPECT(resultFor(results, FUTURE) != nullptr, true);
-    EXPECT(resultFor(results, FUTURE)->status, CDRMCommitThread::AQ_DRM_COMMIT_THREAD_CANCELLED);
+    EXPECT(resultFor(results, FUTURE)->status, CDRMCommitThread::ABYSSAL_DRM_COMMIT_THREAD_CANCELLED);
 
     const auto IDS    = submitterPtr->submittedIDs();
     const auto VALUES = submitterPtr->submittedValues();
@@ -291,7 +291,7 @@ int main() {
     EXPECT(deadlineValues.at(3), 1500);
 
     const auto DEADLINE_RESULTS = deadlineThread->stopAndDrain();
-    EXPECT(resultFor(DEADLINE_RESULTS, SLEEPING)->status, CDRMCommitThread::AQ_DRM_COMMIT_THREAD_CANCELLED);
+    EXPECT(resultFor(DEADLINE_RESULTS, SLEEPING)->status, CDRMCommitThread::ABYSSAL_DRM_COMMIT_THREAD_CANCELLED);
 
     auto stopSubmitter    = makeUnique<CFakeCommitSubmitter>();
     auto stopSubmitterPtr = stopSubmitter.get();
@@ -310,7 +310,7 @@ int main() {
     stopSubmitterPtr->unblock();
     EXPECT(stopping.wait_for(2s) == std::future_status::ready, true);
     const auto STOP_RESULTS = stopping.get();
-    EXPECT(resultFor(STOP_RESULTS, ACTIVE_STOP)->status, CDRMCommitThread::AQ_DRM_COMMIT_THREAD_SUBMITTED);
+    EXPECT(resultFor(STOP_RESULTS, ACTIVE_STOP)->status, CDRMCommitThread::ABYSSAL_DRM_COMMIT_THREAD_SUBMITTED);
 
     auto barrierSubmitter    = makeUnique<CFakeCommitSubmitter>();
     auto barrierSubmitterPtr = barrierSubmitter.get();

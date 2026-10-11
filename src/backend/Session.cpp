@@ -1,4 +1,4 @@
-#include <aquamarine/backend/Backend.hpp>
+#include <abyssal/backend/Backend.hpp>
 #include <cerrno>
 #include <fcntl.h>
 #include "Shared.hpp"
@@ -15,35 +15,35 @@ extern "C" {
 #include <unistd.h>
 }
 
-using namespace Aquamarine;
-using namespace Hyprutils::Memory;
+using namespace Abyssal;
+using namespace Abyssutils::Memory;
 #define SP CSharedPointer
 
-static const std::string AQ_UNKNOWN_DEVICE_NAME = "UNKNOWN";
+static const std::string ABYSSAL_UNKNOWN_DEVICE_NAME = "UNKNOWN";
 
 // we can't really do better with libseat/libinput logs
 // because they don't allow us to pass "data" or anything...
 // Nobody should create multiple backends anyways really
-Hyprutils::Memory::CSharedPointer<CBackend> backendInUse;
+Abyssutils::Memory::CSharedPointer<CBackend> backendInUse;
 
 //
-static Aquamarine::eBackendLogLevel logLevelFromLibseat(libseat_log_level level) {
+static Abyssal::eBackendLogLevel logLevelFromLibseat(libseat_log_level level) {
     switch (level) {
-        case LIBSEAT_LOG_LEVEL_ERROR: return AQ_LOG_ERROR;
-        case LIBSEAT_LOG_LEVEL_SILENT: return AQ_LOG_TRACE;
+        case LIBSEAT_LOG_LEVEL_ERROR: return ABYSSAL_LOG_ERROR;
+        case LIBSEAT_LOG_LEVEL_SILENT: return ABYSSAL_LOG_TRACE;
         default: break;
     }
 
-    return AQ_LOG_DEBUG;
+    return ABYSSAL_LOG_DEBUG;
 }
 
-static Aquamarine::eBackendLogLevel logLevelFromLibinput(libinput_log_priority level) {
+static Abyssal::eBackendLogLevel logLevelFromLibinput(libinput_log_priority level) {
     switch (level) {
-        case LIBINPUT_LOG_PRIORITY_ERROR: return AQ_LOG_ERROR;
+        case LIBINPUT_LOG_PRIORITY_ERROR: return ABYSSAL_LOG_ERROR;
         default: break;
     }
 
-    return AQ_LOG_DEBUG;
+    return ABYSSAL_LOG_DEBUG;
 }
 
 static void libseatLog(libseat_log_level level, const char* fmt, va_list args) {
@@ -77,7 +77,7 @@ static void libinputLog(libinput*, libinput_log_priority level, const char* fmt,
 // ------------ Libseat
 
 static void libseatEnableSeat(struct libseat* seat, void* data) {
-    auto PSESSION    = (Aquamarine::CSession*)data;
+    auto PSESSION    = (Abyssal::CSession*)data;
     PSESSION->active = true;
     if (PSESSION->libinputHandle)
         libinput_resume(PSESSION->libinputHandle);
@@ -85,7 +85,7 @@ static void libseatEnableSeat(struct libseat* seat, void* data) {
 }
 
 static void libseatDisableSeat(struct libseat* seat, void* data) {
-    auto PSESSION    = (Aquamarine::CSession*)data;
+    auto PSESSION    = (Abyssal::CSession*)data;
     PSESSION->active = false;
     if (PSESSION->libinputHandle)
         libinput_suspend(PSESSION->libinputHandle);
@@ -129,16 +129,16 @@ static const libinput_interface libinputListener = {
 
 // ------------
 
-Aquamarine::CSessionDevice::CSessionDevice(Hyprutils::Memory::CSharedPointer<CSession> session_, const std::string& path_) : path(path_), session(session_) {
+Abyssal::CSessionDevice::CSessionDevice(Abyssutils::Memory::CSharedPointer<CSession> session_, const std::string& path_) : path(path_), session(session_) {
     deviceID = libseat_open_device(session->libseatHandle, path.c_str(), &fd);
     if (deviceID < 0) {
-        session->backend->log(AQ_LOG_ERROR, std::format("libseat: Couldn't open device at {}", path_));
+        session->backend->log(ABYSSAL_LOG_ERROR, std::format("libseat: Couldn't open device at {}", path_));
         return;
     }
 
     struct stat stat_;
     if (fstat(fd, &stat_) < 0) {
-        session->backend->log(AQ_LOG_ERROR, std::format("libseat: Couldn't stat device at {}", path_));
+        session->backend->log(ABYSSAL_LOG_ERROR, std::format("libseat: Couldn't stat device at {}", path_));
         deviceID = -1;
         return;
     }
@@ -146,10 +146,10 @@ Aquamarine::CSessionDevice::CSessionDevice(Hyprutils::Memory::CSharedPointer<CSe
     dev = stat_.st_rdev;
 }
 
-Aquamarine::CSessionDevice::~CSessionDevice() {
+Abyssal::CSessionDevice::~CSessionDevice() {
     if (deviceID >= 0)
         if (libseat_close_device(session->libseatHandle, deviceID) < 0)
-            session->backend->log(AQ_LOG_ERROR, std::format("libseat: Couldn't close device at {}", path));
+            session->backend->log(ABYSSAL_LOG_ERROR, std::format("libseat: Couldn't close device at {}", path));
     if (fd >= 0)
         close(fd);
 
@@ -157,21 +157,21 @@ Aquamarine::CSessionDevice::~CSessionDevice() {
         close(renderNodeFd);
 }
 
-bool Aquamarine::CSessionDevice::supportsKMS() {
+bool Abyssal::CSessionDevice::supportsKMS() {
     if (deviceID < 0)
         return false;
 
     bool kms = drmIsKMS(fd);
 
     if (kms)
-        session->backend->log(AQ_LOG_DEBUG, std::format("libseat: Device {} supports kms", path));
+        session->backend->log(ABYSSAL_LOG_DEBUG, std::format("libseat: Device {} supports kms", path));
     else
-        session->backend->log(AQ_LOG_DEBUG, std::format("libseat: Device {} does not support kms", path));
+        session->backend->log(ABYSSAL_LOG_DEBUG, std::format("libseat: Device {} does not support kms", path));
 
     return kms;
 }
 
-void Aquamarine::CSessionDevice::resolveMatchingRenderNode(udev_device* cardDevice) {
+void Abyssal::CSessionDevice::resolveMatchingRenderNode(udev_device* cardDevice) {
     if (!cardDevice)
         return;
 
@@ -206,7 +206,7 @@ void Aquamarine::CSessionDevice::resolveMatchingRenderNode(udev_device* cardDevi
         if (devParent && parentSyspath && strcmp(udev_device_get_syspath(devParent), parentSyspath) == 0) {
             renderNodeFd = open(devnode, O_RDWR | O_CLOEXEC);
             if (renderNodeFd < 0)
-                session->backend->log(AQ_LOG_WARNING, std::format("drm: Failed to open matching render node {}", devnode));
+                session->backend->log(ABYSSAL_LOG_WARNING, std::format("drm: Failed to open matching render node {}", devnode));
 
             udev_device_unref(dev);
             break;
@@ -226,11 +226,11 @@ void Aquamarine::CSessionDevice::resolveMatchingRenderNode(udev_device* cardDevi
     // We only fall back when there is exactly one renderD on the
     // system. Multi-renderD configs (eGPU + iGPU, evdi, capture
     // devices) can't be disambiguated from this layer; picking the
-    // wrong one is what regressed PR #237 per #260 (hyprpaper SIGABRT
+    // wrong one is what regressed PR #237 per #260 (abysspaper SIGABRT
     // on eglQueryDeviceStringEXT). Counting first lets Asahi succeed
     // while leaving multi-renderD systems unchanged from upstream.
     //
-    // Refs hyprwm/aquamarine#260 (M1/M2 reports), PR #237 (unconditional
+    // Refs abysswm/abyssal#260 (M1/M2 reports), PR #237 (unconditional
     // for non-standard buses, reverted by 8ed71bb), commit 2455556b
     // (last known-good on M-series Asahi per the #260 thread).
     if (renderNodeFd < 0) {
@@ -264,7 +264,7 @@ void Aquamarine::CSessionDevice::resolveMatchingRenderNode(udev_device* cardDevi
                 renderNodeFd = open(fbDevnode, O_RDWR | O_CLOEXEC);
                 if (renderNodeFd >= 0) {
                     session->backend->log(
-                        AQ_LOG_WARNING,
+                        ABYSSAL_LOG_WARNING,
                         std::format("drm: No matching render node for {}, falling back to sole renderD on the system: {}", parentSyspath ? parentSyspath : "(unknown)", fbDevnode));
                     udev_device_unref(fbDev);
                     break;
@@ -272,9 +272,9 @@ void Aquamarine::CSessionDevice::resolveMatchingRenderNode(udev_device* cardDevi
                 udev_device_unref(fbDev);
             }
         } else if (renderDCount > 1) {
-            session->backend->log(AQ_LOG_WARNING,
+            session->backend->log(ABYSSAL_LOG_WARNING,
                                   std::format("drm: No matching render node for {}, refusing to guess among {} renderD candidates; leaving renderer to fall through to KMS fd (may "
-                                              "force software rendering; set AQ_DRM_DEVICES to disambiguate)",
+                                              "force software rendering; set ABYSSAL_DRM_DEVICES to disambiguate)",
                                               parentSyspath ? parentSyspath : "(unknown)", renderDCount));
         }
     }
@@ -282,14 +282,14 @@ void Aquamarine::CSessionDevice::resolveMatchingRenderNode(udev_device* cardDevi
     udev_enumerate_unref(enumerate);
 }
 
-SP<CSessionDevice> Aquamarine::CSessionDevice::openIfKMS(SP<CSession> session_, const std::string& path_) {
+SP<CSessionDevice> Abyssal::CSessionDevice::openIfKMS(SP<CSession> session_, const std::string& path_) {
     auto dev = makeShared<CSessionDevice>(session_, path_);
-    if (envEnabled("AQ_NO_KMS_REQUIREMENT") || dev->supportsKMS())
+    if (envEnabled("ABYSSAL_NO_KMS_REQUIREMENT") || dev->supportsKMS())
         return dev;
     return nullptr;
 }
 
-SP<CSession> Aquamarine::CSession::attempt(Hyprutils::Memory::CSharedPointer<CBackend> backend_) {
+SP<CSession> Abyssal::CSession::attempt(Abyssutils::Memory::CSharedPointer<CBackend> backend_) {
     if (!backend_)
         return nullptr;
 
@@ -306,13 +306,13 @@ SP<CSession> Aquamarine::CSession::attempt(Hyprutils::Memory::CSharedPointer<CBa
     session->libseatHandle = libseat_open_seat(&libseatListener, session.get());
 
     if (!session->libseatHandle) {
-        session->backend->log(AQ_LOG_ERROR, "libseat: failed to open a seat");
+        session->backend->log(ABYSSAL_LOG_ERROR, "libseat: failed to open a seat");
         return nullptr;
     }
 
     auto seatName = libseat_seat_name(session->libseatHandle);
     if (!seatName) {
-        session->backend->log(AQ_LOG_ERROR, "libseat: failed to get seat name");
+        session->backend->log(ABYSSAL_LOG_ERROR, "libseat: failed to get seat name");
         return nullptr;
     }
 
@@ -325,13 +325,13 @@ SP<CSession> Aquamarine::CSession::attempt(Hyprutils::Memory::CSharedPointer<CBa
 
     session->udevHandle = udev_new();
     if (!session->udevHandle) {
-        session->backend->log(AQ_LOG_ERROR, "udev: failed to create a new context");
+        session->backend->log(ABYSSAL_LOG_ERROR, "udev: failed to create a new context");
         return nullptr;
     }
 
     session->udevMonitor = udev_monitor_new_from_netlink(session->udevHandle, "udev");
     if (!session->udevMonitor) {
-        session->backend->log(AQ_LOG_ERROR, "udev: failed to create a new udevMonitor");
+        session->backend->log(ABYSSAL_LOG_ERROR, "udev: failed to create a new udevMonitor");
         return nullptr;
     }
 
@@ -342,37 +342,37 @@ SP<CSession> Aquamarine::CSession::attempt(Hyprutils::Memory::CSharedPointer<CBa
 
     session->libinputHandle = libinput_udev_create_context(&libinputListener, session.get(), session->udevHandle);
     if (!session->libinputHandle) {
-        session->backend->log(AQ_LOG_ERROR, "libinput: failed to create a new context");
+        session->backend->log(ABYSSAL_LOG_ERROR, "libinput: failed to create a new context");
         return nullptr;
     }
 
     libinput_log_set_handler(session->libinputHandle, ::libinputLog);
     libinput_log_set_priority(session->libinputHandle, LIBINPUT_LOG_PRIORITY_DEBUG);
 
-#ifdef AQUAMARINE_HAS_LIBINPUT_PLUGINS
-    if (envEnabled("AQ_LIBINPUT_NO_PLUGINS"))
-        session->backend->log(AQ_LOG_DEBUG, "libinput: plugin loading disabled by AQ_LIBINPUT_NO_PLUGINS");
+#ifdef ABYSSAL_HAS_LIBINPUT_PLUGINS
+    if (envEnabled("ABYSSAL_LIBINPUT_NO_PLUGINS"))
+        session->backend->log(ABYSSAL_LOG_DEBUG, "libinput: plugin loading disabled by ABYSSAL_LIBINPUT_NO_PLUGINS");
     else {
         libinput_plugin_system_append_default_paths(session->libinputHandle);
 
         if (int ret = libinput_plugin_system_load_plugins(session->libinputHandle, LIBINPUT_PLUGIN_SYSTEM_FLAG_NONE); ret < 0) {
             if (ret == -ENOSYS)
-                session->backend->log(AQ_LOG_WARNING, "libinput: plugin support is not available in this libinput build");
+                session->backend->log(ABYSSAL_LOG_WARNING, "libinput: plugin support is not available in this libinput build");
             else
-                session->backend->log(AQ_LOG_WARNING, std::format("libinput: failed to load plugins: {}", strerror(-ret)));
+                session->backend->log(ABYSSAL_LOG_WARNING, std::format("libinput: failed to load plugins: {}", strerror(-ret)));
         }
     }
 #endif
 
     if (libinput_udev_assign_seat(session->libinputHandle, session->seatName.c_str())) {
-        session->backend->log(AQ_LOG_ERROR, "libinput: failed to assign a seat");
+        session->backend->log(ABYSSAL_LOG_ERROR, "libinput: failed to assign a seat");
         return nullptr;
     }
 
     return session;
 }
 
-Aquamarine::CSession::~CSession() {
+Abyssal::CSession::~CSession() {
     sessionDevices.clear();
     libinputDevices.clear();
 
@@ -403,11 +403,11 @@ static bool isDRMCard(const char* sysname) {
     return true;
 }
 
-void Aquamarine::CSession::onReady() {
+void Abyssal::CSession::onReady() {
     ;
 }
 
-void Aquamarine::CSession::dispatchUdevEvents() {
+void Abyssal::CSession::dispatchUdevEvents() {
     if (!udevHandle || !udevMonitor)
         return;
 
@@ -420,7 +420,7 @@ void Aquamarine::CSession::dispatchUdevEvents() {
     auto devnode = udev_device_get_devnode(device);
     auto action  = udev_device_get_action(device);
 
-    backend->log(AQ_LOG_DEBUG, std::format("udev: new udev {} event for {}", action ? action : "unknown", sysname ? sysname : "unknown"));
+    backend->log(ABYSSAL_LOG_DEBUG, std::format("udev: new udev {} event for {}", action ? action : "unknown", sysname ? sysname : "unknown"));
 
     if (!isDRMCard(sysname) || !action || !devnode) {
         udev_device_unref(device);
@@ -450,14 +450,14 @@ void Aquamarine::CSession::dispatchUdevEvents() {
     if (action == std::string{"add"})
         events.addDrmCard.emit(SAddDrmCardEvent{.path = devnode});
     else if (action == std::string{"change"}) {
-        backend->log(AQ_LOG_DEBUG, std::format("udev: DRM device {} changed", sysname ? sysname : "unknown"));
+        backend->log(ABYSSAL_LOG_DEBUG, std::format("udev: DRM device {} changed", sysname ? sysname : "unknown"));
 
         CSessionDevice::SChangeEvent event;
 
         //
         auto prop = udev_device_get_property_value(device, "HOTPLUG");
         if (prop && prop == std::string{"1"}) {
-            event.type = CSessionDevice::AQ_SESSION_EVENT_CHANGE_HOTPLUG;
+            event.type = CSessionDevice::ABYSSAL_SESSION_EVENT_CHANGE_HOTPLUG;
 
             prop = udev_device_get_property_value(device, "CONNECTOR");
             if (prop)
@@ -467,14 +467,14 @@ void Aquamarine::CSession::dispatchUdevEvents() {
             if (prop)
                 event.hotplug.propID = std::stoull(prop);
         } else if (prop = udev_device_get_property_value(device, "LEASE"); prop && prop == std::string{"1"}) {
-            event.type = CSessionDevice::AQ_SESSION_EVENT_CHANGE_LEASE;
+            event.type = CSessionDevice::ABYSSAL_SESSION_EVENT_CHANGE_LEASE;
         } else {
-            backend->log(AQ_LOG_DEBUG, std::format("udev: DRM device {} change event unrecognized", sysname ? sysname : "unknown"));
+            backend->log(ABYSSAL_LOG_DEBUG, std::format("udev: DRM device {} change event unrecognized", sysname ? sysname : "unknown"));
         }
 
         sessionDevice->events.change.emit(event);
     } else if (action == std::string{"remove"}) {
-        backend->log(AQ_LOG_DEBUG, std::format("udev: DRM device {} removed", sysname ? sysname : "unknown"));
+        backend->log(ABYSSAL_LOG_DEBUG, std::format("udev: DRM device {} removed", sysname ? sysname : "unknown"));
         sessionDevice->events.remove.emit();
         std::erase_if(sessionDevices, [sessionDevice](const auto& sd) { return sd == sessionDevice; });
     }
@@ -482,12 +482,12 @@ void Aquamarine::CSession::dispatchUdevEvents() {
     udev_device_unref(device);
 }
 
-void Aquamarine::CSession::dispatchLibinputEvents() {
+void Abyssal::CSession::dispatchLibinputEvents() {
     if (!libinputHandle)
         return;
 
     if (int ret = libinput_dispatch(libinputHandle); ret) {
-        backend->log(AQ_LOG_ERROR, std::format("Couldn't dispatch libinput events: {}", strerror(-ret)));
+        backend->log(ABYSSAL_LOG_ERROR, std::format("Couldn't dispatch libinput events: {}", strerror(-ret)));
         return;
     }
 
@@ -499,12 +499,12 @@ void Aquamarine::CSession::dispatchLibinputEvents() {
     }
 }
 
-void Aquamarine::CSession::dispatchLibseatEvents() {
+void Abyssal::CSession::dispatchLibseatEvents() {
     if (libseat_dispatch(libseatHandle, 0) == -1)
-        backend->log(AQ_LOG_ERROR, "Couldn't dispatch libseat events");
+        backend->log(ABYSSAL_LOG_ERROR, "Couldn't dispatch libseat events");
 }
 
-void Aquamarine::CSession::dispatchPendingEventsAsync() {
+void Abyssal::CSession::dispatchPendingEventsAsync() {
     dispatchLibseatEvents();
 
     // only linux libudev allows us to asynchronously dispatch outstanding without blocking
@@ -515,7 +515,7 @@ void Aquamarine::CSession::dispatchPendingEventsAsync() {
     dispatchLibinputEvents();
 }
 
-std::vector<Hyprutils::Memory::CSharedPointer<SPollFD>> Aquamarine::CSession::pollFDs() {
+std::vector<Abyssutils::Memory::CSharedPointer<SPollFD>> Abyssal::CSession::pollFDs() {
     // clang-format off
     return {
         makeShared<SPollFD>(libseat_get_fd(libseatHandle), [this](){    dispatchLibseatEvents();  }),
@@ -525,19 +525,19 @@ std::vector<Hyprutils::Memory::CSharedPointer<SPollFD>> Aquamarine::CSession::po
     // clang-format on
 }
 
-bool Aquamarine::CSession::switchVT(uint32_t vt) {
+bool Abyssal::CSession::switchVT(uint32_t vt) {
     return libseat_switch_session(libseatHandle, vt) == 0;
 }
 
-void Aquamarine::CSession::handleLibinputEvent(libinput_event* e) {
+void Abyssal::CSession::handleLibinputEvent(libinput_event* e) {
     auto device    = libinput_event_get_device(e);
     auto eventType = libinput_event_get_type(e);
     auto data      = libinput_device_get_user_data(device);
 
-    backend->log(AQ_LOG_TRACE, std::format("libinput: Event {}", (int)eventType));
+    backend->log(ABYSSAL_LOG_TRACE, std::format("libinput: Event {}", (int)eventType));
 
     if (!data && eventType != LIBINPUT_EVENT_DEVICE_ADDED) {
-        backend->log(AQ_LOG_ERROR, "libinput: No aq device in event and not added");
+        backend->log(ABYSSAL_LOG_ERROR, "libinput: No aq device in event and not added");
         return;
     }
 
@@ -620,9 +620,9 @@ void Aquamarine::CSession::handleLibinputEvent(libinput_event* e) {
             };
 
             switch (eventType) {
-                case LIBINPUT_EVENT_POINTER_SCROLL_WHEEL: aqe.source = IPointer::AQ_POINTER_AXIS_SOURCE_WHEEL; break;
-                case LIBINPUT_EVENT_POINTER_SCROLL_FINGER: aqe.source = IPointer::AQ_POINTER_AXIS_SOURCE_FINGER; break;
-                case LIBINPUT_EVENT_POINTER_SCROLL_CONTINUOUS: aqe.source = IPointer::AQ_POINTER_AXIS_SOURCE_CONTINUOUS; break;
+                case LIBINPUT_EVENT_POINTER_SCROLL_WHEEL: aqe.source = IPointer::ABYSSAL_POINTER_AXIS_SOURCE_WHEEL; break;
+                case LIBINPUT_EVENT_POINTER_SCROLL_FINGER: aqe.source = IPointer::ABYSSAL_POINTER_AXIS_SOURCE_FINGER; break;
+                case LIBINPUT_EVENT_POINTER_SCROLL_CONTINUOUS: aqe.source = IPointer::ABYSSAL_POINTER_AXIS_SOURCE_CONTINUOUS; break;
                 default: break; /* unreachable */
             }
 
@@ -635,13 +635,13 @@ void Aquamarine::CSession::handleLibinputEvent(libinput_event* e) {
                 if (!libinput_event_pointer_has_axis(pe, axis))
                     continue;
 
-                aqe.axis      = axis == LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL ? IPointer::AQ_POINTER_AXIS_VERTICAL : IPointer::AQ_POINTER_AXIS_HORIZONTAL;
+                aqe.axis      = axis == LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL ? IPointer::ABYSSAL_POINTER_AXIS_VERTICAL : IPointer::ABYSSAL_POINTER_AXIS_HORIZONTAL;
                 aqe.delta     = libinput_event_pointer_get_scroll_value(pe, axis);
-                aqe.direction = IPointer::AQ_POINTER_AXIS_RELATIVE_IDENTICAL;
+                aqe.direction = IPointer::ABYSSAL_POINTER_AXIS_RELATIVE_IDENTICAL;
                 if (libinput_device_config_scroll_get_natural_scroll_enabled(device))
-                    aqe.direction = IPointer::AQ_POINTER_AXIS_RELATIVE_INVERTED;
+                    aqe.direction = IPointer::ABYSSAL_POINTER_AXIS_RELATIVE_INVERTED;
 
-                if (aqe.source == IPointer::AQ_POINTER_AXIS_SOURCE_WHEEL)
+                if (aqe.source == IPointer::ABYSSAL_POINTER_AXIS_SOURCE_WHEEL)
                     aqe.discrete = libinput_event_pointer_get_scroll_value_v120(pe, axis);
 
                 hlDevice->mouse->events.axis.emit(aqe);
@@ -775,8 +775,8 @@ void Aquamarine::CSession::handleLibinputEvent(libinput_event* e) {
             hlDevice->switchy->state = ENABLED;
 
             switch (libinput_event_switch_get_switch(se)) {
-                case LIBINPUT_SWITCH_LID: hlDevice->switchy->type = ISwitch::AQ_SWITCH_TYPE_LID; break;
-                case LIBINPUT_SWITCH_TABLET_MODE: hlDevice->switchy->type = ISwitch::AQ_SWITCH_TYPE_TABLET_MODE; break;
+                case LIBINPUT_SWITCH_LID: hlDevice->switchy->type = ISwitch::ABYSSAL_SWITCH_TYPE_LID; break;
+                case LIBINPUT_SWITCH_TABLET_MODE: hlDevice->switchy->type = ISwitch::ABYSSAL_SWITCH_TYPE_TABLET_MODE; break;
                 default: break;
             }
 
@@ -807,8 +807,8 @@ void Aquamarine::CSession::handleLibinputEvent(libinput_event* e) {
 
             hlDevice->tabletPad->events.ring.emit(ITabletPad::SRingEvent{
                 .timeMs = (uint32_t)(libinput_event_tablet_pad_get_time_usec(tpe) / 1000),
-                .source = libinput_event_tablet_pad_get_ring_source(tpe) == LIBINPUT_TABLET_PAD_RING_SOURCE_UNKNOWN ? ITabletPad::AQ_TABLET_PAD_RING_SOURCE_UNKNOWN :
-                                                                                                                      ITabletPad::AQ_TABLET_PAD_RING_SOURCE_FINGER,
+                .source = libinput_event_tablet_pad_get_ring_source(tpe) == LIBINPUT_TABLET_PAD_RING_SOURCE_UNKNOWN ? ITabletPad::ABYSSAL_TABLET_PAD_RING_SOURCE_UNKNOWN :
+                                                                                                                      ITabletPad::ABYSSAL_TABLET_PAD_RING_SOURCE_FINGER,
                 .ring   = (uint16_t)libinput_event_tablet_pad_get_ring_number(tpe),
                 .pos    = libinput_event_tablet_pad_get_ring_position(tpe),
                 .mode   = (uint16_t)libinput_event_tablet_pad_get_mode(tpe),
@@ -820,8 +820,8 @@ void Aquamarine::CSession::handleLibinputEvent(libinput_event* e) {
 
             hlDevice->tabletPad->events.strip.emit(ITabletPad::SStripEvent{
                 .timeMs = (uint32_t)(libinput_event_tablet_pad_get_time_usec(tpe) / 1000),
-                .source = libinput_event_tablet_pad_get_strip_source(tpe) == LIBINPUT_TABLET_PAD_STRIP_SOURCE_UNKNOWN ? ITabletPad::AQ_TABLET_PAD_STRIP_SOURCE_UNKNOWN :
-                                                                                                                        ITabletPad::AQ_TABLET_PAD_STRIP_SOURCE_FINGER,
+                .source = libinput_event_tablet_pad_get_strip_source(tpe) == LIBINPUT_TABLET_PAD_STRIP_SOURCE_UNKNOWN ? ITabletPad::ABYSSAL_TABLET_PAD_STRIP_SOURCE_UNKNOWN :
+                                                                                                                        ITabletPad::ABYSSAL_TABLET_PAD_STRIP_SOURCE_FINGER,
                 .strip  = (uint16_t)libinput_event_tablet_pad_get_strip_number(tpe),
                 .pos    = libinput_event_tablet_pad_get_strip_position(tpe),
                 .mode   = (uint16_t)libinput_event_tablet_pad_get_mode(tpe),
@@ -885,7 +885,7 @@ void Aquamarine::CSession::handleLibinputEvent(libinput_event* e) {
     }
 }
 
-void Aquamarine::CSession::handleLibinputTabletToolAxis(libinput_event* e) {
+void Abyssal::CSession::handleLibinputTabletToolAxis(libinput_event* e) {
     auto                device   = libinput_event_get_device(e);
     auto                data     = libinput_device_get_user_data(device);
     auto                hlDevice = ((CLibinputDevice*)data)->self.lock();
@@ -899,57 +899,57 @@ void Aquamarine::CSession::handleLibinputTabletToolAxis(libinput_event* e) {
     };
 
     if (libinput_event_tablet_tool_x_has_changed(tte)) {
-        event.updatedAxes |= AQ_TABLET_TOOL_AXIS_X;
+        event.updatedAxes |= ABYSSAL_TABLET_TOOL_AXIS_X;
         event.absolute.x = libinput_event_tablet_tool_get_x_transformed(tte, 1);
         event.delta.x    = libinput_event_tablet_tool_get_dx(tte);
     }
     if (libinput_event_tablet_tool_y_has_changed(tte)) {
-        event.updatedAxes |= AQ_TABLET_TOOL_AXIS_Y;
+        event.updatedAxes |= ABYSSAL_TABLET_TOOL_AXIS_Y;
         event.absolute.y = libinput_event_tablet_tool_get_y_transformed(tte, 1);
         event.delta.y    = libinput_event_tablet_tool_get_dy(tte);
     }
     if (libinput_event_tablet_tool_pressure_has_changed(tte)) {
-        event.updatedAxes |= AQ_TABLET_TOOL_AXIS_PRESSURE;
+        event.updatedAxes |= ABYSSAL_TABLET_TOOL_AXIS_PRESSURE;
         event.pressure = libinput_event_tablet_tool_get_pressure(tte);
     }
     if (libinput_event_tablet_tool_distance_has_changed(tte)) {
-        event.updatedAxes |= AQ_TABLET_TOOL_AXIS_DISTANCE;
+        event.updatedAxes |= ABYSSAL_TABLET_TOOL_AXIS_DISTANCE;
         event.distance = libinput_event_tablet_tool_get_distance(tte);
     }
     if (libinput_event_tablet_tool_tilt_x_has_changed(tte)) {
-        event.updatedAxes |= AQ_TABLET_TOOL_AXIS_TILT_X;
+        event.updatedAxes |= ABYSSAL_TABLET_TOOL_AXIS_TILT_X;
         event.tilt.x = libinput_event_tablet_tool_get_tilt_x(tte);
     }
     if (libinput_event_tablet_tool_tilt_y_has_changed(tte)) {
-        event.updatedAxes |= AQ_TABLET_TOOL_AXIS_TILT_Y;
+        event.updatedAxes |= ABYSSAL_TABLET_TOOL_AXIS_TILT_Y;
         event.tilt.y = libinput_event_tablet_tool_get_tilt_y(tte);
     }
     if (libinput_event_tablet_tool_rotation_has_changed(tte)) {
-        event.updatedAxes |= AQ_TABLET_TOOL_AXIS_ROTATION;
+        event.updatedAxes |= ABYSSAL_TABLET_TOOL_AXIS_ROTATION;
         event.rotation = libinput_event_tablet_tool_get_rotation(tte);
     }
     if (libinput_event_tablet_tool_slider_has_changed(tte)) {
-        event.updatedAxes |= AQ_TABLET_TOOL_AXIS_SLIDER;
+        event.updatedAxes |= ABYSSAL_TABLET_TOOL_AXIS_SLIDER;
         event.slider = libinput_event_tablet_tool_get_slider_position(tte);
     }
     if (libinput_event_tablet_tool_wheel_has_changed(tte)) {
-        event.updatedAxes |= AQ_TABLET_TOOL_AXIS_WHEEL;
+        event.updatedAxes |= ABYSSAL_TABLET_TOOL_AXIS_WHEEL;
         event.wheelDelta = libinput_event_tablet_tool_get_wheel_delta(tte);
     }
 
     hlDevice->tablet->events.axis.emit(event);
 }
 
-Aquamarine::CLibinputDevice::CLibinputDevice(libinput_device* device_, Hyprutils::Memory::CWeakPointer<CSession> session_) : device(device_), session(session_) {
+Abyssal::CLibinputDevice::CLibinputDevice(libinput_device* device_, Abyssutils::Memory::CWeakPointer<CSession> session_) : device(device_), session(session_) {
     ;
 }
 
-void Aquamarine::CLibinputDevice::init() {
+void Abyssal::CLibinputDevice::init() {
     const auto VENDOR  = libinput_device_get_id_vendor(device);
     const auto PRODUCT = libinput_device_get_id_product(device);
     const auto NAME    = libinput_device_get_name(device);
 
-    session->backend->log(AQ_LOG_DEBUG, std::format("libinput: New device {}: {}-{}", NAME ? NAME : "Unknown", VENDOR, PRODUCT));
+    session->backend->log(ABYSSAL_LOG_DEBUG, std::format("libinput: New device {}: {}-{}", NAME ? NAME : "Unknown", VENDOR, PRODUCT));
 
     name = NAME;
 
@@ -993,12 +993,12 @@ void Aquamarine::CLibinputDevice::init() {
     }
 }
 
-Aquamarine::CLibinputDevice::~CLibinputDevice() {
+Abyssal::CLibinputDevice::~CLibinputDevice() {
     libinput_device_set_user_data(device, nullptr);
     libinput_device_unref(device);
 }
 
-SP<CLibinputTabletTool> Aquamarine::CLibinputDevice::toolFrom(libinput_tablet_tool* tool) {
+SP<CLibinputTabletTool> Abyssal::CLibinputDevice::toolFrom(libinput_tablet_tool* tool) {
     for (auto const& t : tabletTools) {
         if (t->libinputTool == tool)
             return t;
@@ -1013,89 +1013,89 @@ SP<CLibinputTabletTool> Aquamarine::CLibinputDevice::toolFrom(libinput_tablet_to
 
 static ITabletTool::eTabletToolType aqTypeFromLibinput(libinput_tablet_tool_type value) {
     switch (value) {
-        case LIBINPUT_TABLET_TOOL_TYPE_PEN: return ITabletTool::AQ_TABLET_TOOL_TYPE_PEN;
-        case LIBINPUT_TABLET_TOOL_TYPE_ERASER: return ITabletTool::AQ_TABLET_TOOL_TYPE_ERASER;
-        case LIBINPUT_TABLET_TOOL_TYPE_BRUSH: return ITabletTool::AQ_TABLET_TOOL_TYPE_BRUSH;
-        case LIBINPUT_TABLET_TOOL_TYPE_PENCIL: return ITabletTool::AQ_TABLET_TOOL_TYPE_PENCIL;
-        case LIBINPUT_TABLET_TOOL_TYPE_AIRBRUSH: return ITabletTool::AQ_TABLET_TOOL_TYPE_AIRBRUSH;
-        case LIBINPUT_TABLET_TOOL_TYPE_MOUSE: return ITabletTool::AQ_TABLET_TOOL_TYPE_MOUSE;
-        case LIBINPUT_TABLET_TOOL_TYPE_LENS: return ITabletTool::AQ_TABLET_TOOL_TYPE_LENS;
-        case LIBINPUT_TABLET_TOOL_TYPE_TOTEM: return ITabletTool::AQ_TABLET_TOOL_TYPE_TOTEM;
+        case LIBINPUT_TABLET_TOOL_TYPE_PEN: return ITabletTool::ABYSSAL_TABLET_TOOL_TYPE_PEN;
+        case LIBINPUT_TABLET_TOOL_TYPE_ERASER: return ITabletTool::ABYSSAL_TABLET_TOOL_TYPE_ERASER;
+        case LIBINPUT_TABLET_TOOL_TYPE_BRUSH: return ITabletTool::ABYSSAL_TABLET_TOOL_TYPE_BRUSH;
+        case LIBINPUT_TABLET_TOOL_TYPE_PENCIL: return ITabletTool::ABYSSAL_TABLET_TOOL_TYPE_PENCIL;
+        case LIBINPUT_TABLET_TOOL_TYPE_AIRBRUSH: return ITabletTool::ABYSSAL_TABLET_TOOL_TYPE_AIRBRUSH;
+        case LIBINPUT_TABLET_TOOL_TYPE_MOUSE: return ITabletTool::ABYSSAL_TABLET_TOOL_TYPE_MOUSE;
+        case LIBINPUT_TABLET_TOOL_TYPE_LENS: return ITabletTool::ABYSSAL_TABLET_TOOL_TYPE_LENS;
+        case LIBINPUT_TABLET_TOOL_TYPE_TOTEM: return ITabletTool::ABYSSAL_TABLET_TOOL_TYPE_TOTEM;
     }
-    return ITabletTool::AQ_TABLET_TOOL_TYPE_INVALID;
+    return ITabletTool::ABYSSAL_TABLET_TOOL_TYPE_INVALID;
 }
 
-Aquamarine::CLibinputKeyboard::CLibinputKeyboard(SP<CLibinputDevice> dev) : device(dev) {
+Abyssal::CLibinputKeyboard::CLibinputKeyboard(SP<CLibinputDevice> dev) : device(dev) {
     libinput_device_led_update(device->device, (libinput_led)0);
 }
 
-libinput_device* Aquamarine::CLibinputKeyboard::getLibinputHandle() {
+libinput_device* Abyssal::CLibinputKeyboard::getLibinputHandle() {
     if (!device)
         return nullptr;
     return device->device;
 }
 
-const std::string& Aquamarine::CLibinputKeyboard::getName() {
+const std::string& Abyssal::CLibinputKeyboard::getName() {
     if (!device)
-        return AQ_UNKNOWN_DEVICE_NAME;
+        return ABYSSAL_UNKNOWN_DEVICE_NAME;
     return device->name;
 }
 
-void Aquamarine::CLibinputKeyboard::updateLEDs(uint32_t leds) {
+void Abyssal::CLibinputKeyboard::updateLEDs(uint32_t leds) {
     libinput_device_led_update(device->device, (libinput_led)leds);
 }
 
-Aquamarine::CLibinputMouse::CLibinputMouse(Hyprutils::Memory::CSharedPointer<CLibinputDevice> dev) : device(dev) {
+Abyssal::CLibinputMouse::CLibinputMouse(Abyssutils::Memory::CSharedPointer<CLibinputDevice> dev) : device(dev) {
     ;
 }
 
-libinput_device* Aquamarine::CLibinputMouse::getLibinputHandle() {
+libinput_device* Abyssal::CLibinputMouse::getLibinputHandle() {
     if (!device)
         return nullptr;
     return device->device;
 }
 
-const std::string& Aquamarine::CLibinputMouse::getName() {
+const std::string& Abyssal::CLibinputMouse::getName() {
     if (!device)
-        return AQ_UNKNOWN_DEVICE_NAME;
+        return ABYSSAL_UNKNOWN_DEVICE_NAME;
     return device->name;
 }
 
-Aquamarine::CLibinputTouch::CLibinputTouch(Hyprutils::Memory::CSharedPointer<CLibinputDevice> dev) : device(dev) {
+Abyssal::CLibinputTouch::CLibinputTouch(Abyssutils::Memory::CSharedPointer<CLibinputDevice> dev) : device(dev) {
     double w = 0, h = 0;
     libinput_device_get_size(dev->device, &w, &h);
     physicalSize = {w, h};
 }
 
-libinput_device* Aquamarine::CLibinputTouch::getLibinputHandle() {
+libinput_device* Abyssal::CLibinputTouch::getLibinputHandle() {
     if (!device)
         return nullptr;
     return device->device;
 }
 
-const std::string& Aquamarine::CLibinputTouch::getName() {
+const std::string& Abyssal::CLibinputTouch::getName() {
     if (!device)
-        return AQ_UNKNOWN_DEVICE_NAME;
+        return ABYSSAL_UNKNOWN_DEVICE_NAME;
     return device->name;
 }
 
-Aquamarine::CLibinputSwitch::CLibinputSwitch(Hyprutils::Memory::CSharedPointer<CLibinputDevice> dev) : device(dev) {
+Abyssal::CLibinputSwitch::CLibinputSwitch(Abyssutils::Memory::CSharedPointer<CLibinputDevice> dev) : device(dev) {
     ;
 }
 
-libinput_device* Aquamarine::CLibinputSwitch::getLibinputHandle() {
+libinput_device* Abyssal::CLibinputSwitch::getLibinputHandle() {
     if (!device)
         return nullptr;
     return device->device;
 }
 
-const std::string& Aquamarine::CLibinputSwitch::getName() {
+const std::string& Abyssal::CLibinputSwitch::getName() {
     if (!device)
-        return AQ_UNKNOWN_DEVICE_NAME;
+        return ABYSSAL_UNKNOWN_DEVICE_NAME;
     return device->name;
 }
 
-Aquamarine::CLibinputTablet::CLibinputTablet(Hyprutils::Memory::CSharedPointer<CLibinputDevice> dev) : device(dev) {
+Abyssal::CLibinputTablet::CLibinputTablet(Abyssutils::Memory::CSharedPointer<CLibinputDevice> dev) : device(dev) {
     if (libinput_device_get_id_bustype(device->device) == BUS_USB) {
         usbVendorID  = libinput_device_get_id_vendor(device->device);
         usbProductID = libinput_device_get_id_product(device->device);
@@ -1109,19 +1109,19 @@ Aquamarine::CLibinputTablet::CLibinputTablet(Hyprutils::Memory::CSharedPointer<C
     paths.emplace_back(udev_device_get_syspath(udevice));
 }
 
-libinput_device* Aquamarine::CLibinputTablet::getLibinputHandle() {
+libinput_device* Abyssal::CLibinputTablet::getLibinputHandle() {
     if (!device)
         return nullptr;
     return device->device;
 }
 
-const std::string& Aquamarine::CLibinputTablet::getName() {
+const std::string& Abyssal::CLibinputTablet::getName() {
     if (!device)
-        return AQ_UNKNOWN_DEVICE_NAME;
+        return ABYSSAL_UNKNOWN_DEVICE_NAME;
     return device->name;
 }
 
-Aquamarine::CLibinputTabletTool::CLibinputTabletTool(Hyprutils::Memory::CSharedPointer<CLibinputDevice> dev, libinput_tablet_tool* tool) : device(dev), libinputTool(tool) {
+Abyssal::CLibinputTabletTool::CLibinputTabletTool(Abyssutils::Memory::CSharedPointer<CLibinputDevice> dev, libinput_tablet_tool* tool) : device(dev), libinputTool(tool) {
     type   = aqTypeFromLibinput(libinput_tablet_tool_get_type(libinputTool));
     serial = libinput_tablet_tool_get_serial(libinputTool);
     id     = libinput_tablet_tool_get_tool_id(libinputTool);
@@ -1130,42 +1130,42 @@ Aquamarine::CLibinputTabletTool::CLibinputTabletTool(Hyprutils::Memory::CSharedP
 
     capabilities = 0;
     if (libinput_tablet_tool_has_distance(tool))
-        capabilities |= AQ_TABLET_TOOL_CAPABILITY_DISTANCE;
+        capabilities |= ABYSSAL_TABLET_TOOL_CAPABILITY_DISTANCE;
     if (libinput_tablet_tool_has_pressure(tool))
-        capabilities |= AQ_TABLET_TOOL_CAPABILITY_PRESSURE;
+        capabilities |= ABYSSAL_TABLET_TOOL_CAPABILITY_PRESSURE;
     if (libinput_tablet_tool_has_tilt(tool))
-        capabilities |= AQ_TABLET_TOOL_CAPABILITY_TILT;
+        capabilities |= ABYSSAL_TABLET_TOOL_CAPABILITY_TILT;
     if (libinput_tablet_tool_has_rotation(tool))
-        capabilities |= AQ_TABLET_TOOL_CAPABILITY_ROTATION;
+        capabilities |= ABYSSAL_TABLET_TOOL_CAPABILITY_ROTATION;
     if (libinput_tablet_tool_has_slider(tool))
-        capabilities |= AQ_TABLET_TOOL_CAPABILITY_SLIDER;
+        capabilities |= ABYSSAL_TABLET_TOOL_CAPABILITY_SLIDER;
     if (libinput_tablet_tool_has_wheel(tool))
-        capabilities |= AQ_TABLET_TOOL_CAPABILITY_WHEEL;
+        capabilities |= ABYSSAL_TABLET_TOOL_CAPABILITY_WHEEL;
 
     libinput_tablet_tool_set_user_data(tool, this);
 }
 
-Aquamarine::CLibinputTabletTool::~CLibinputTabletTool() {
+Abyssal::CLibinputTabletTool::~CLibinputTabletTool() {
     libinput_tablet_tool_unref(libinputTool);
 }
 
-libinput_device* Aquamarine::CLibinputTabletTool::getLibinputHandle() {
+libinput_device* Abyssal::CLibinputTabletTool::getLibinputHandle() {
     if (!device)
         return nullptr;
     return device->device;
 }
 
-libinput_tablet_tool* Aquamarine::CLibinputTabletTool::getLibinputTool() {
+libinput_tablet_tool* Abyssal::CLibinputTabletTool::getLibinputTool() {
     return libinputTool;
 }
 
-const std::string& Aquamarine::CLibinputTabletTool::getName() {
+const std::string& Abyssal::CLibinputTabletTool::getName() {
     if (!device)
-        return AQ_UNKNOWN_DEVICE_NAME;
+        return ABYSSAL_UNKNOWN_DEVICE_NAME;
     return device->name;
 }
 
-Aquamarine::CLibinputTabletPad::CLibinputTabletPad(Hyprutils::Memory::CSharedPointer<CLibinputDevice> dev) : device(dev) {
+Abyssal::CLibinputTabletPad::CLibinputTabletPad(Abyssutils::Memory::CSharedPointer<CLibinputDevice> dev) : device(dev) {
     buttons = libinput_device_tablet_pad_get_num_buttons(device->device);
     rings   = libinput_device_tablet_pad_get_num_rings(device->device);
     strips  = libinput_device_tablet_pad_get_num_strips(device->device);
@@ -1181,7 +1181,7 @@ Aquamarine::CLibinputTabletPad::CLibinputTabletPad(Hyprutils::Memory::CSharedPoi
     }
 }
 
-Aquamarine::CLibinputTabletPad::~CLibinputTabletPad() {
+Abyssal::CLibinputTabletPad::~CLibinputTabletPad() {
     int groups = libinput_device_tablet_pad_get_num_mode_groups(device->device);
     for (int i = 0; i < groups; ++i) {
         auto g = libinput_device_tablet_pad_get_mode_group(device->device, i);
@@ -1189,19 +1189,19 @@ Aquamarine::CLibinputTabletPad::~CLibinputTabletPad() {
     }
 }
 
-libinput_device* Aquamarine::CLibinputTabletPad::getLibinputHandle() {
+libinput_device* Abyssal::CLibinputTabletPad::getLibinputHandle() {
     if (!device)
         return nullptr;
     return device->device;
 }
 
-const std::string& Aquamarine::CLibinputTabletPad::getName() {
+const std::string& Abyssal::CLibinputTabletPad::getName() {
     if (!device)
-        return AQ_UNKNOWN_DEVICE_NAME;
+        return ABYSSAL_UNKNOWN_DEVICE_NAME;
     return device->name;
 }
 
-SP<ITabletPad::STabletPadGroup> Aquamarine::CLibinputTabletPad::createGroupFromID(int id) {
+SP<ITabletPad::STabletPadGroup> Abyssal::CLibinputTabletPad::createGroupFromID(int id) {
     auto libinputGroup = libinput_device_tablet_pad_get_mode_group(device->device, id);
     libinput_tablet_pad_mode_group_ref(libinputGroup);
 

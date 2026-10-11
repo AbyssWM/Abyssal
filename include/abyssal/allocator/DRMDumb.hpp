@@ -2,7 +2,7 @@
 
 #include "Allocator.hpp"
 
-namespace Aquamarine {
+namespace Abyssal {
     class CDRMDumbAllocator;
     class CBackend;
     class CSwapchain;
@@ -13,7 +13,7 @@ namespace Aquamarine {
 
         virtual eBufferCapability                      caps();
         virtual eBufferType                            type();
-        virtual void                                   update(const Hyprutils::Math::CRegion& damage);
+        virtual void                                   update(const Abyssutils::Math::CRegion& damage);
         virtual bool                                   isSynchronous();
         virtual bool                                   good();
         virtual SDMABUFAttrs                           dmabuf();
@@ -21,13 +21,13 @@ namespace Aquamarine {
         virtual void                                   endDataPtr();
 
       private:
-        CDRMDumbBuffer(const SAllocatorBufferParams& params, Hyprutils::Memory::CWeakPointer<CDRMDumbAllocator> allocator_,
-                       Hyprutils::Memory::CSharedPointer<CSwapchain> swapchain);
+        CDRMDumbBuffer(const SAllocatorBufferParams& params, Abyssutils::Memory::CWeakPointer<CDRMDumbAllocator> allocator_,
+                       Abyssutils::Memory::CSharedPointer<CSwapchain> swapchain);
 
-        Hyprutils::Memory::CWeakPointer<CDRMDumbAllocator> allocator;
+        Abyssutils::Memory::CWeakPointer<CDRMDumbAllocator> allocator;
 
         //
-        Hyprutils::Math::Vector2D pixelSize;
+        Abyssutils::Math::Vector2D pixelSize;
         uint32_t                  stride = 0, handle = 0;
         uint64_t                  bufferLen = 0;
         uint8_t*                  data      = nullptr;
@@ -42,23 +42,23 @@ namespace Aquamarine {
     class CDRMDumbAllocator : public IAllocator {
       public:
         ~CDRMDumbAllocator();
-        static Hyprutils::Memory::CSharedPointer<CDRMDumbAllocator> create(int drmfd_, Hyprutils::Memory::CWeakPointer<CBackend> backend_);
+        static Abyssutils::Memory::CSharedPointer<CDRMDumbAllocator> create(int drmfd_, Abyssutils::Memory::CWeakPointer<CBackend> backend_);
 
-        virtual Hyprutils::Memory::CSharedPointer<IBuffer>          acquire(const SAllocatorBufferParams& params, Hyprutils::Memory::CSharedPointer<CSwapchain> swapchain_);
-        virtual Hyprutils::Memory::CSharedPointer<CBackend>         getBackend();
+        virtual Abyssutils::Memory::CSharedPointer<IBuffer>          acquire(const SAllocatorBufferParams& params, Abyssutils::Memory::CSharedPointer<CSwapchain> swapchain_);
+        virtual Abyssutils::Memory::CSharedPointer<CBackend>         getBackend();
         virtual int                                                 drmFD();
         virtual eAllocatorType                                      type();
 
         //
-        Hyprutils::Memory::CWeakPointer<CDRMDumbAllocator> self;
+        Abyssutils::Memory::CWeakPointer<CDRMDumbAllocator> self;
 
       private:
-        CDRMDumbAllocator(int fd_, Hyprutils::Memory::CWeakPointer<CBackend> backend_);
+        CDRMDumbAllocator(int fd_, Abyssutils::Memory::CWeakPointer<CBackend> backend_);
 
         // a vector purely for tracking (debugging) the buffers and nothing more
-        std::vector<Hyprutils::Memory::CWeakPointer<CDRMDumbBuffer>> buffers;
+        std::vector<Abyssutils::Memory::CWeakPointer<CDRMDumbBuffer>> buffers;
 
-        Hyprutils::Memory::CWeakPointer<CBackend>                    backend;
+        Abyssutils::Memory::CWeakPointer<CBackend>                    backend;
 
         int                                                          drmfd = -1;
 

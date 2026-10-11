@@ -1,21 +1,21 @@
-#include <aquamarine/misc/Attachment.hpp>
+#include <abyssal/misc/Attachment.hpp>
 
-using namespace Aquamarine;
-using namespace Hyprutils::Memory;
+using namespace Abyssal;
+using namespace Abyssutils::Memory;
 #define SP CSharedPointer
 
-void Aquamarine::CAttachmentManager::add(SP<IAttachment> attachment) {
+void Abyssal::CAttachmentManager::add(SP<IAttachment> attachment) {
     const IAttachment& att   = *attachment;
     attachments[typeid(att)] = attachment;
 }
 
-void Aquamarine::CAttachmentManager::remove(SP<IAttachment> attachment) {
+void Abyssal::CAttachmentManager::remove(SP<IAttachment> attachment) {
     const IAttachment& att = *attachment;
     auto               it  = attachments.find(typeid(att));
     if (it != attachments.end() && it->second == attachment)
         attachments.erase(it);
 }
 
-void Aquamarine::CAttachmentManager::clear() {
+void Abyssal::CAttachmentManager::clear() {
     attachments.clear();
 }

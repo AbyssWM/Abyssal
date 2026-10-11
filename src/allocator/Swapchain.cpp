@@ -1,31 +1,31 @@
 #include <algorithm>
-#include <aquamarine/allocator/Swapchain.hpp>
-#include <aquamarine/backend/Backend.hpp>
+#include <abyssal/allocator/Swapchain.hpp>
+#include <abyssal/backend/Backend.hpp>
 #include "FormatUtils.hpp"
 
-using namespace Aquamarine;
-using namespace Hyprutils::Memory;
-using namespace Hyprutils::Math;
+using namespace Abyssal;
+using namespace Abyssutils::Memory;
+using namespace Abyssutils::Math;
 #define SP CSharedPointer
 
-SP<CSwapchain> Aquamarine::CSwapchain::create(SP<IAllocator> allocator_, SP<IBackendImplementation> backendImpl_) {
+SP<CSwapchain> Abyssal::CSwapchain::create(SP<IAllocator> allocator_, SP<IBackendImplementation> backendImpl_) {
     auto p  = SP<CSwapchain>(new CSwapchain(allocator_, backendImpl_));
     p->self = p;
     return p;
 }
 
-Aquamarine::CSwapchain::CSwapchain(SP<IAllocator> allocator_, SP<IBackendImplementation> backendImpl_) : allocator(allocator_), backendImpl(backendImpl_) {
+Abyssal::CSwapchain::CSwapchain(SP<IAllocator> allocator_, SP<IBackendImplementation> backendImpl_) : allocator(allocator_), backendImpl(backendImpl_) {
     if (!allocator || !backendImpl)
         return;
 }
 
-bool Aquamarine::CSwapchain::reconfigure(const SSwapchainOptions& options_) {
+bool Abyssal::CSwapchain::reconfigure(const SSwapchainOptions& options_) {
     if (!allocator)
         return false;
 
     if (options_.size == Vector2D{} || options_.length == 0) {
         // clear the swapchain
-        allocator->getBackend()->log(AQ_LOG_DEBUG, "Swapchain: Clearing");
+        allocator->getBackend()->log(ABYSSAL_LOG_DEBUG, "Swapchain: Clearing");
         buffers.clear();
         options = options_;
         return true;
@@ -42,7 +42,7 @@ bool Aquamarine::CSwapchain::reconfigure(const SSwapchainOptions& options_) {
 
         options = options_;
 
-        allocator->getBackend()->log(AQ_LOG_DEBUG, std::format("Swapchain: Resized a {} {} swapchain to length {}", options.size, fourccToName(options.format), options.length));
+        allocator->getBackend()->log(ABYSSAL_LOG_DEBUG, std::format("Swapchain: Resized a {} {} swapchain to length {}", options.size, fourccToName(options.format), options.length));
         return true;
     }
 
@@ -54,12 +54,12 @@ bool Aquamarine::CSwapchain::reconfigure(const SSwapchainOptions& options_) {
     if (options.format == DRM_FORMAT_INVALID)
         options.format = buffers.at(0)->dmabuf().format;
 
-    allocator->getBackend()->log(AQ_LOG_DEBUG,
+    allocator->getBackend()->log(ABYSSAL_LOG_DEBUG,
                                  std::format("Swapchain: Reconfigured a swapchain to {} {} of length {}", options.size, fourccToName(options.format), options.length));
     return true;
 }
 
-SP<IBuffer> Aquamarine::CSwapchain::next(int* age) {
+SP<IBuffer> Abyssal::CSwapchain::next(int* age) {
     if (!allocator || options.length <= 0)
         return nullptr;
 
@@ -71,8 +71,8 @@ SP<IBuffer> Aquamarine::CSwapchain::next(int* age) {
     return buffers.at(lastAcquired);
 }
 
-bool Aquamarine::CSwapchain::fullReconfigure(const SSwapchainOptions& options_) {
-    std::vector<Hyprutils::Memory::CSharedPointer<IBuffer>> bfs;
+bool Abyssal::CSwapchain::fullReconfigure(const SSwapchainOptions& options_) {
+    std::vector<Abyssutils::Memory::CSharedPointer<IBuffer>> bfs;
     bfs.reserve(options_.length);
 
     for (size_t i = 0; i < options_.length; ++i) {
@@ -80,10 +80,10 @@ bool Aquamarine::CSwapchain::fullReconfigure(const SSwapchainOptions& options_) 
             SAllocatorBufferParams{.size = options_.size, .format = options_.format, .scanout = options_.scanout, .cursor = options_.cursor, .multigpu = options_.multigpu},
             self.lock());
         if (!buf) {
-            allocator->getBackend()->log(AQ_LOG_ERROR, "Swapchain: Failed acquiring a buffer");
+            allocator->getBackend()->log(ABYSSAL_LOG_ERROR, "Swapchain: Failed acquiring a buffer");
             return false;
         }
-        allocator->getBackend()->log(AQ_LOG_TRACE,
+        allocator->getBackend()->log(ABYSSAL_LOG_TRACE,
                                      std::format("Swapchain: Acquired a buffer with format {} and modifier 0x{:x} : {}", fourccToName(buf->dmabuf().format), buf->dmabuf().modifier,
                                                  drmModifierToName(buf->dmabuf().modifier)));
         bfs.emplace_back(buf);
@@ -94,7 +94,7 @@ bool Aquamarine::CSwapchain::fullReconfigure(const SSwapchainOptions& options_) 
     return true;
 }
 
-bool Aquamarine::CSwapchain::resize(size_t newSize) {
+bool Abyssal::CSwapchain::resize(size_t newSize) {
     if (newSize == buffers.size())
         return true;
 
@@ -108,7 +108,7 @@ bool Aquamarine::CSwapchain::resize(size_t newSize) {
                 SAllocatorBufferParams{.size = options.size, .format = options.format, .scanout = options.scanout, .cursor = options.cursor, .multigpu = options.multigpu},
                 self.lock());
             if (!buf) {
-                allocator->getBackend()->log(AQ_LOG_ERROR, "Swapchain: Failed acquiring a buffer");
+                allocator->getBackend()->log(ABYSSAL_LOG_ERROR, "Swapchain: Failed acquiring a buffer");
                 return false;
             }
             buffers.emplace_back(buf);
@@ -118,20 +118,20 @@ bool Aquamarine::CSwapchain::resize(size_t newSize) {
     return true;
 }
 
-bool Aquamarine::CSwapchain::contains(SP<IBuffer> buffer) {
+bool Abyssal::CSwapchain::contains(SP<IBuffer> buffer) {
     return std::ranges::find(buffers, buffer) != buffers.end();
 }
 
-const SSwapchainOptions& Aquamarine::CSwapchain::currentOptions() {
+const SSwapchainOptions& Abyssal::CSwapchain::currentOptions() {
     return options;
 }
 
-void Aquamarine::CSwapchain::rollback() {
+void Abyssal::CSwapchain::rollback() {
     lastAcquired--;
     if (lastAcquired < 0)
         lastAcquired = options.length - 1;
 }
 
-SP<IAllocator> Aquamarine::CSwapchain::getAllocator() {
+SP<IAllocator> Abyssal::CSwapchain::getAllocator() {
     return allocator;
 }

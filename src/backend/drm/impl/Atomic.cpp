@@ -1,4 +1,4 @@
-#include <aquamarine/backend/drm/Atomic.hpp>
+#include <abyssal/backend/drm/Atomic.hpp>
 #include <cerrno>
 #include <cstdint>
 #include <cstring>
@@ -9,11 +9,11 @@
 #include <sstream>
 #include <optional>
 #include "Shared.hpp"
-#include "aquamarine/output/Output.hpp"
+#include "abyssal/output/Output.hpp"
 
-using namespace Aquamarine;
-using namespace Hyprutils::Memory;
-using namespace Hyprutils::Math;
+using namespace Abyssal;
+using namespace Abyssutils::Memory;
+using namespace Abyssutils::Math;
 #define SP CSharedPointer
 
 // HW capabilites aren't checked. Should be handled by the drivers (and highly unlikely to get a format outside of bpc range)
@@ -52,12 +52,12 @@ static uint8_t getMaxBPC(uint64_t min, uint64_t max, uint32_t drmFormat) {
     return std::clamp<uint64_t>(formatBPC, min, max);
 }
 
-Aquamarine::CDRMAtomicRequest::CDRMAtomicRequest(Hyprutils::Memory::CWeakPointer<CDRMBackend> backend_) : backend(backend_), req(drmModeAtomicAlloc()) {
+Abyssal::CDRMAtomicRequest::CDRMAtomicRequest(Abyssutils::Memory::CWeakPointer<CDRMBackend> backend_) : backend(backend_), req(drmModeAtomicAlloc()) {
     if (!req)
         failed = true;
 }
 
-Aquamarine::CDRMAtomicRequest::~CDRMAtomicRequest() {
+Abyssal::CDRMAtomicRequest::~CDRMAtomicRequest() {
     if (req)
         drmModeAtomicFree(req);
     for (const auto& blob : borrowedModeBlobs) {
@@ -78,7 +78,7 @@ Aquamarine::CDRMAtomicRequest::~CDRMAtomicRequest() {
 // A fresh blob is required: handing the kernel the same blob id it already holds
 // leaves mode_changed clear, so the driver never redoes the allocation.
 // Returns false if there was nothing to restate.
-bool Aquamarine::CDRMAtomicRequest::restateConnectors(SP<SDRMConnector> self) {
+bool Abyssal::CDRMAtomicRequest::restateConnectors(SP<SDRMConnector> self) {
     if (failed)
         return false;
 
@@ -102,13 +102,13 @@ bool Aquamarine::CDRMAtomicRequest::restateConnectors(SP<SDRMConnector> self) {
 
         uint32_t blob = 0;
         if (drmModeCreatePropertyBlob(backend->gpu->fd, &mode, sizeof(mode), &blob)) {
-            backend->log(AQ_LOG_ERROR, std::format("atomic drm request: failed to blob mode for {} while restating heads", c->szName));
+            backend->log(ABYSSAL_LOG_ERROR, std::format("atomic drm request: failed to blob mode for {} while restating heads", c->szName));
             continue;
         }
 
         borrowedModeBlobs.emplace_back(blob);
 
-        TRACE(backend->log(AQ_LOG_TRACE, std::format("atomic drm request: restating head {} with blob {}", c->szName, blob)));
+        TRACE(backend->log(ABYSSAL_LOG_TRACE, std::format("atomic drm request: restating head {} with blob {}", c->szName, blob)));
 
         add(c->crtc->id, c->crtc->props.values.mode_id, blob);
         add(c->crtc->id, c->crtc->props.values.active, 1);
@@ -131,31 +131,31 @@ bool Aquamarine::CDRMAtomicRequest::restateConnectors(SP<SDRMConnector> self) {
     return any && !failed;
 }
 
-void Aquamarine::CDRMAtomicRequest::add(uint32_t id, uint32_t prop, uint64_t val) {
+void Abyssal::CDRMAtomicRequest::add(uint32_t id, uint32_t prop, uint64_t val) {
     if (failed)
         return;
 
-    TRACE(backend->log(AQ_LOG_TRACE, std::format("atomic drm request: adding id {} prop {} with value {}", id, prop, val)));
+    TRACE(backend->log(ABYSSAL_LOG_TRACE, std::format("atomic drm request: adding id {} prop {} with value {}", id, prop, val)));
 
     if (id == 0 || prop == 0) {
-        backend->log(AQ_LOG_ERROR, "atomic drm request: failed to add prop: id / prop == 0");
+        backend->log(ABYSSAL_LOG_ERROR, "atomic drm request: failed to add prop: id / prop == 0");
         return;
     }
 
     if (drmModeAtomicAddProperty(req, id, prop, val) < 0) {
-        backend->log(AQ_LOG_ERROR, "atomic drm request: failed to add prop");
+        backend->log(ABYSSAL_LOG_ERROR, "atomic drm request: failed to add prop");
         failed = true;
     }
 }
 
-bool Aquamarine::CDRMAtomicRequest::addRaw(uint32_t id, uint32_t prop, uint64_t val) noexcept {
+bool Abyssal::CDRMAtomicRequest::addRaw(uint32_t id, uint32_t prop, uint64_t val) noexcept {
     if (!req || !id || !prop)
         return false;
 
     return drmModeAtomicAddProperty(req, id, prop, val) >= 0;
 }
 
-CDRMAtomicRequest::SAsyncResult Aquamarine::CDRMAtomicRequest::submitAsync(int drmFD, uint32_t flags, uint64_t commitID) noexcept {
+CDRMAtomicRequest::SAsyncResult Abyssal::CDRMAtomicRequest::submitAsync(int drmFD, uint32_t flags, uint64_t commitID) noexcept {
     if (!req || failed || drmFD < 0 || !commitID)
         return {.submitted = false, .error = EINVAL};
 
@@ -166,15 +166,15 @@ CDRMAtomicRequest::SAsyncResult Aquamarine::CDRMAtomicRequest::submitAsync(int d
     return {.submitted = true, .error = 0};
 }
 
-void Aquamarine::CDRMAtomicRequest::planeProps(Hyprutils::Memory::CSharedPointer<SDRMPlane> plane, Hyprutils::Memory::CSharedPointer<CDRMFB> fb, uint32_t crtc,
-                                               Hyprutils::Math::Vector2D pos, eOutputColorRange colorRange) {
+void Abyssal::CDRMAtomicRequest::planeProps(Abyssutils::Memory::CSharedPointer<SDRMPlane> plane, Abyssutils::Memory::CSharedPointer<CDRMFB> fb, uint32_t crtc,
+                                               Abyssutils::Math::Vector2D pos, eOutputColorRange colorRange) {
 
     if (failed)
         return;
 
     if (!fb || !crtc) {
         // Disable the plane
-        TRACE(backend->log(AQ_LOG_TRACE, std::format("atomic planeProps: disabling plane {}", plane->id)));
+        TRACE(backend->log(ABYSSAL_LOG_TRACE, std::format("atomic planeProps: disabling plane {}", plane->id)));
         add(plane->id, plane->props.values.fb_id, 0);
         add(plane->id, plane->props.values.crtc_id, 0);
         add(plane->id, plane->props.values.crtc_x, (uint64_t)(int64_t)pos.x);
@@ -182,7 +182,7 @@ void Aquamarine::CDRMAtomicRequest::planeProps(Hyprutils::Memory::CSharedPointer
         return;
     }
 
-    TRACE(backend->log(AQ_LOG_TRACE,
+    TRACE(backend->log(ABYSSAL_LOG_TRACE,
                        std::format("atomic planeProps: prop blobs: src_x {}, src_y {}, src_w {}, src_h {}, crtc_w {}, crtc_h {}, fb_id {}, crtc_id {}", plane->props.values.src_x,
                                    plane->props.values.src_y, plane->props.values.src_w, plane->props.values.src_h, plane->props.values.crtc_w, plane->props.values.crtc_h,
                                    plane->props.values.fb_id, plane->props.values.crtc_id)));
@@ -200,11 +200,11 @@ void Aquamarine::CDRMAtomicRequest::planeProps(Hyprutils::Memory::CSharedPointer
     if (plane->props.values.color_range) {
         std::optional<uint32_t> rangeVal;
         switch (colorRange) {
-            case AQ_OUTPUT_COLOR_RANGE_FULL: rangeVal = plane->colorRange.values.Full_YCbCr; break;
-            case AQ_OUTPUT_COLOR_RANGE_LIMITED: rangeVal = plane->colorRange.values.Limited_YCbCr; break;
-            case AQ_OUTPUT_COLOR_RANGE_AUTO:
+            case ABYSSAL_OUTPUT_COLOR_RANGE_FULL: rangeVal = plane->colorRange.values.Full_YCbCr; break;
+            case ABYSSAL_OUTPUT_COLOR_RANGE_LIMITED: rangeVal = plane->colorRange.values.Limited_YCbCr; break;
+            case ABYSSAL_OUTPUT_COLOR_RANGE_AUTO:
                 // https://github.com/NVIDIA/open-gpu-kernel-modules/discussions/1105
-                if (backend->gpuDriver() == AQ_BACKEND_GPU_DRIVER_NVIDIA)
+                if (backend->gpuDriver() == ABYSSAL_BACKEND_GPU_DRIVER_NVIDIA)
                     rangeVal = plane->colorRange.values.Full_YCbCr;
                 break;
         }
@@ -215,31 +215,31 @@ void Aquamarine::CDRMAtomicRequest::planeProps(Hyprutils::Memory::CSharedPointer
     planePropsPos(plane, pos);
 }
 
-void Aquamarine::CDRMAtomicRequest::planePropsPos(Hyprutils::Memory::CSharedPointer<SDRMPlane> plane, Hyprutils::Math::Vector2D pos) {
+void Abyssal::CDRMAtomicRequest::planePropsPos(Abyssutils::Memory::CSharedPointer<SDRMPlane> plane, Abyssutils::Math::Vector2D pos) {
 
     if (failed)
         return;
 
-    TRACE(backend->log(AQ_LOG_TRACE, std::format("atomic planeProps: pos blobs: crtc_x {}, crtc_y {}", plane->props.values.crtc_x, plane->props.values.crtc_y)));
+    TRACE(backend->log(ABYSSAL_LOG_TRACE, std::format("atomic planeProps: pos blobs: crtc_x {}, crtc_y {}", plane->props.values.crtc_x, plane->props.values.crtc_y)));
 
     add(plane->id, plane->props.values.crtc_x, (uint64_t)(int64_t)pos.x);
     add(plane->id, plane->props.values.crtc_y, (uint64_t)(int64_t)pos.y);
 }
 
-void Aquamarine::CDRMAtomicRequest::setConnector(Hyprutils::Memory::CSharedPointer<SDRMConnector> connector) {
+void Abyssal::CDRMAtomicRequest::setConnector(Abyssutils::Memory::CSharedPointer<SDRMConnector> connector) {
     conn = connector;
 }
 
-void Aquamarine::CDRMAtomicRequest::addConnector(Hyprutils::Memory::CSharedPointer<SDRMConnector> connector, SDRMConnectorCommitData& data) {
+void Abyssal::CDRMAtomicRequest::addConnector(Abyssutils::Memory::CSharedPointer<SDRMConnector> connector, SDRMConnectorCommitData& data) {
     const auto& STATE  = data.outputState;
     const bool  enable = data.enabled && data.mainFB;
 
-    TRACE(backend->log(AQ_LOG_TRACE,
+    TRACE(backend->log(ABYSSAL_LOG_TRACE,
                        std::format("atomic addConnector blobs: mode_id {}, active {}, crtc_id {}, link_status {}, content_type {}", connector->crtc->props.values.mode_id,
                                    connector->crtc->props.values.active, connector->props.values.crtc_id, connector->props.values.link_status,
                                    connector->props.values.content_type)));
 
-    TRACE(backend->log(AQ_LOG_TRACE, std::format("atomic addConnector values: CRTC {}, mode {}", enable ? connector->crtc->id : 0, data.atomic.modeBlob)));
+    TRACE(backend->log(ABYSSAL_LOG_TRACE, std::format("atomic addConnector values: CRTC {}, mode {}", enable ? connector->crtc->id : 0, data.atomic.modeBlob)));
 
     conn = connector;
 
@@ -305,7 +305,7 @@ void Aquamarine::CDRMAtomicRequest::addConnector(Hyprutils::Memory::CSharedPoint
     add(connector->crtc->id, connector->crtc->props.values.active, enable);
 
     if (enable) {
-        if (connector->output->supportsExplicit && data.committed & COutputState::AQ_OUTPUT_STATE_EXPLICIT_OUT_FENCE)
+        if (connector->output->supportsExplicit && data.committed & COutputState::ABYSSAL_OUTPUT_STATE_EXPLICIT_OUT_FENCE)
             add(connector->crtc->id, connector->crtc->props.values.out_fence_ptr, (uintptr_t)&data.outputState.explicitOutFence);
 
         if (connector->crtc->props.values.gamma_lut && data.atomic.gammad)
@@ -322,7 +322,7 @@ void Aquamarine::CDRMAtomicRequest::addConnector(Hyprutils::Memory::CSharedPoint
 
         planeProps(connector->crtc->primary, data.mainFB, connector->crtc->id, {}, STATE.colorRange);
 
-        if (connector->output->supportsExplicit && (data.committed & COutputState::AQ_OUTPUT_STATE_EXPLICIT_IN_FENCE) && STATE.explicitInFence >= 0)
+        if (connector->output->supportsExplicit && (data.committed & COutputState::ABYSSAL_OUTPUT_STATE_EXPLICIT_IN_FENCE) && STATE.explicitInFence >= 0)
             add(connector->crtc->primary->id, connector->crtc->primary->props.values.in_fence_fd, STATE.explicitInFence);
 
         if (connector->crtc->primary->props.values.fb_damage_clips)
@@ -332,7 +332,7 @@ void Aquamarine::CDRMAtomicRequest::addConnector(Hyprutils::Memory::CSharedPoint
     }
 }
 
-void Aquamarine::CDRMAtomicRequest::addConnectorModeset(Hyprutils::Memory::CSharedPointer<SDRMConnector> connector, SDRMConnectorCommitData& data) {
+void Abyssal::CDRMAtomicRequest::addConnectorModeset(Abyssutils::Memory::CSharedPointer<SDRMConnector> connector, SDRMConnectorCommitData& data) {
     if (!data.modeset)
         return;
 
@@ -348,16 +348,16 @@ void Aquamarine::CDRMAtomicRequest::addConnectorModeset(Hyprutils::Memory::CShar
         add(connector->crtc->id, connector->crtc->props.values.mode_id, data.atomic.modeBlob);
 }
 
-void Aquamarine::CDRMAtomicRequest::addConnectorCursor(Hyprutils::Memory::CSharedPointer<SDRMConnector> connector, SDRMConnectorCommitData& data) {
+void Abyssal::CDRMAtomicRequest::addConnectorCursor(Abyssutils::Memory::CSharedPointer<SDRMConnector> connector, SDRMConnectorCommitData& data) {
     if (!connector->crtc->cursor)
         return;
 
     const bool enable = data.enabled && data.mainFB;
 
     if (enable) {
-        if (data.committed & COutputState::AQ_OUTPUT_STATE_CURSOR_SHAPE || data.committed & COutputState::AQ_OUTPUT_STATE_CURSOR_POS) {
-            TRACE(backend->log(AQ_LOG_TRACE, data.committed & COutputState::AQ_OUTPUT_STATE_CURSOR_SHAPE ? "atomic addConnector cursor shape" : "atomic addConnector cursor pos"));
-            if (data.committed & COutputState::AQ_OUTPUT_STATE_CURSOR_SHAPE) {
+        if (data.committed & COutputState::ABYSSAL_OUTPUT_STATE_CURSOR_SHAPE || data.committed & COutputState::ABYSSAL_OUTPUT_STATE_CURSOR_POS) {
+            TRACE(backend->log(ABYSSAL_LOG_TRACE, data.committed & COutputState::ABYSSAL_OUTPUT_STATE_CURSOR_SHAPE ? "atomic addConnector cursor shape" : "atomic addConnector cursor pos"));
+            if (data.committed & COutputState::ABYSSAL_OUTPUT_STATE_CURSOR_SHAPE) {
                 if (!data.cursorVisible)
                     planeProps(connector->crtc->cursor, nullptr, 0, {});
                 else
@@ -369,7 +369,7 @@ void Aquamarine::CDRMAtomicRequest::addConnectorCursor(Hyprutils::Memory::CShare
         planeProps(connector->crtc->cursor, nullptr, 0, {});
 }
 
-bool Aquamarine::CDRMAtomicRequest::commit(uint32_t flagssss) {
+bool Abyssal::CDRMAtomicRequest::commit(uint32_t flagssss) {
     static auto flagsToStr = [](uint32_t flags) {
         std::ostringstream result;
         if (flags & DRM_MODE_ATOMIC_ALLOW_MODESET)
@@ -388,7 +388,7 @@ bool Aquamarine::CDRMAtomicRequest::commit(uint32_t flagssss) {
     };
 
     if (failed) {
-        backend->log((flagssss & DRM_MODE_ATOMIC_TEST_ONLY) ? AQ_LOG_DEBUG : AQ_LOG_ERROR, std::format("atomic drm request: failed to commit, failed flag set to true"));
+        backend->log((flagssss & DRM_MODE_ATOMIC_TEST_ONLY) ? ABYSSAL_LOG_DEBUG : ABYSSAL_LOG_ERROR, std::format("atomic drm request: failed to commit, failed flag set to true"));
         return false;
     }
 
@@ -397,7 +397,7 @@ bool Aquamarine::CDRMAtomicRequest::commit(uint32_t flagssss) {
     const auto FLIPID    = WANTSFLIP ? conn->crtc->armPageFlip(conn, flagssss & DRM_MODE_PAGE_FLIP_ASYNC) : uintptr_t{0};
 
     if (auto ret = drmModeAtomicCommit(backend->gpu->fd, req, flagssss, rc<void*>(FLIPID)); ret) {
-        backend->log((flagssss & DRM_MODE_ATOMIC_TEST_ONLY) ? AQ_LOG_DEBUG : AQ_LOG_ERROR,
+        backend->log((flagssss & DRM_MODE_ATOMIC_TEST_ONLY) ? ABYSSAL_LOG_DEBUG : ABYSSAL_LOG_ERROR,
                      std::format("atomic drm request: failed to commit: {}, flags: {}", strerror(ret == -1 ? errno : -ret), flagsToStr(flagssss)));
 
         if (WANTSFLIP)
@@ -412,28 +412,28 @@ bool Aquamarine::CDRMAtomicRequest::commit(uint32_t flagssss) {
     return true;
 }
 
-void Aquamarine::CDRMAtomicRequest::destroyBlob(uint32_t id) {
+void Abyssal::CDRMAtomicRequest::destroyBlob(uint32_t id) {
     if (!id)
         return;
 
     if (drmModeDestroyPropertyBlob(backend->gpu->fd, id))
-        backend->log(AQ_LOG_ERROR, "atomic drm request: failed to destroy a blob");
+        backend->log(ABYSSAL_LOG_ERROR, "atomic drm request: failed to destroy a blob");
 }
 
-void Aquamarine::CDRMAtomicRequest::commitBlob(uint32_t* current, uint32_t next) {
+void Abyssal::CDRMAtomicRequest::commitBlob(uint32_t* current, uint32_t next) {
     if (*current == next)
         return;
     destroyBlob(*current);
     *current = next;
 }
 
-void Aquamarine::CDRMAtomicRequest::rollbackBlob(uint32_t* current, uint32_t next) {
+void Abyssal::CDRMAtomicRequest::rollbackBlob(uint32_t* current, uint32_t next) {
     if (*current == next)
         return;
     destroyBlob(next);
 }
 
-void Aquamarine::CDRMAtomicRequest::rollback(SDRMConnectorCommitData& data) {
+void Abyssal::CDRMAtomicRequest::rollback(SDRMConnectorCommitData& data) {
     if (!conn)
         return;
 
@@ -446,7 +446,7 @@ void Aquamarine::CDRMAtomicRequest::rollback(SDRMConnectorCommitData& data) {
     destroyBlob(data.atomic.fbDamage);
 }
 
-void Aquamarine::CDRMAtomicRequest::apply(SDRMConnectorCommitData& data) {
+void Abyssal::CDRMAtomicRequest::apply(SDRMConnectorCommitData& data) {
     if (!conn)
         return;
 
@@ -462,11 +462,11 @@ void Aquamarine::CDRMAtomicRequest::apply(SDRMConnectorCommitData& data) {
     destroyBlob(data.atomic.fbDamage);
 }
 
-Aquamarine::CDRMAtomicImpl::CDRMAtomicImpl(Hyprutils::Memory::CSharedPointer<CDRMBackend> backend_) : backend(backend_) {
+Abyssal::CDRMAtomicImpl::CDRMAtomicImpl(Abyssutils::Memory::CSharedPointer<CDRMBackend> backend_) : backend(backend_) {
     ;
 }
 
-CUniquePointer<CDRMAtomicRequest> Aquamarine::CDRMAtomicImpl::prepareAsync(SP<SDRMConnector> connector, SDRMConnectorCommitData& data, uint32_t& flags) {
+CUniquePointer<CDRMAtomicRequest> Abyssal::CDRMAtomicImpl::prepareAsync(SP<SDRMConnector> connector, SDRMConnectorCommitData& data, uint32_t& flags) {
     if (!prepareConnector(connector, data))
         return nullptr;
 
@@ -482,7 +482,7 @@ CUniquePointer<CDRMAtomicRequest> Aquamarine::CDRMAtomicImpl::prepareAsync(SP<SD
     return request;
 }
 
-void Aquamarine::CDRMAtomicImpl::finalizeAsync(CDRMAtomicRequest& request, SP<SDRMConnector> connector, SDRMConnectorCommitData& data, bool success) {
+void Abyssal::CDRMAtomicImpl::finalizeAsync(CDRMAtomicRequest& request, SP<SDRMConnector> connector, SDRMConnectorCommitData& data, bool success) {
     if (!success) {
         request.rollback(data);
         return;
@@ -501,7 +501,7 @@ void Aquamarine::CDRMAtomicImpl::finalizeAsync(CDRMAtomicRequest& request, SP<SD
         connector->crtc->atomic.ctmStateKnown = true;
 }
 
-bool Aquamarine::CDRMAtomicImpl::prepareConnector(Hyprutils::Memory::CSharedPointer<SDRMConnector> connector, SDRMConnectorCommitData& data) {
+bool Abyssal::CDRMAtomicImpl::prepareConnector(Abyssutils::Memory::CSharedPointer<SDRMConnector> connector, SDRMConnectorCommitData& data) {
     const auto& STATE  = data.outputState;
     const bool  enable = data.enabled;
     const auto& MODE   = STATE.mode ? STATE.mode : STATE.customMode;
@@ -511,11 +511,11 @@ bool Aquamarine::CDRMAtomicImpl::prepareConnector(Hyprutils::Memory::CSharedPoin
             data.atomic.modeBlob = 0;
         else {
             if (drmModeCreatePropertyBlob(connector->backend->gpu->fd, &data.modeInfo, sizeof(drmModeModeInfo), &data.atomic.modeBlob)) {
-                connector->backend->backend->log(AQ_LOG_ERROR, "atomic drm: failed to create a modeset blob");
+                connector->backend->backend->log(ABYSSAL_LOG_ERROR, "atomic drm: failed to create a modeset blob");
                 return false;
             }
 
-            TRACE(connector->backend->log(AQ_LOG_TRACE,
+            TRACE(connector->backend->log(ABYSSAL_LOG_TRACE,
                                           std::format("Connector blob id {}: clock {}, {}x{}, vrefresh {}, name: {}", data.atomic.modeBlob, data.modeInfo.clock,
                                                       data.modeInfo.hdisplay, data.modeInfo.vdisplay, data.modeInfo.vrefresh, data.modeInfo.name)));
         }
@@ -523,7 +523,7 @@ bool Aquamarine::CDRMAtomicImpl::prepareConnector(Hyprutils::Memory::CSharedPoin
 
     auto prepareGammaBlob = [connector](uint32_t prop, const std::vector<uint16_t>& gammaLut, uint32_t* blobId) -> bool {
         if (!prop) // TODO: allow this with legacy gamma, perhaps.
-            connector->backend->backend->log(AQ_LOG_ERROR, "atomic drm: failed to commit gamma: no gamma_lut prop");
+            connector->backend->backend->log(ABYSSAL_LOG_ERROR, "atomic drm: failed to commit gamma: no gamma_lut prop");
         else if (gammaLut.empty()) {
             *blobId = 0;
             return true;
@@ -539,7 +539,7 @@ bool Aquamarine::CDRMAtomicImpl::prepareConnector(Hyprutils::Memory::CSharedPoin
             }
 
             if (drmModeCreatePropertyBlob(connector->backend->gpu->fd, lut.data(), lut.size() * sizeof(drm_color_lut), blobId)) {
-                connector->backend->backend->log(AQ_LOG_ERROR, "atomic drm: failed to create a gamma blob");
+                connector->backend->backend->log(ABYSSAL_LOG_ERROR, "atomic drm: failed to create a gamma blob");
                 *blobId = 0;
             } else
                 return true;
@@ -553,15 +553,15 @@ bool Aquamarine::CDRMAtomicImpl::prepareConnector(Hyprutils::Memory::CSharedPoin
     // clears the kernel state. only ride the modeset path when the prop actually
     // exists, otherwise we'd log a spurious "no gamma_lut prop" error per modeset.
     // (see #127)
-    if ((data.modeset && connector->crtc->props.values.gamma_lut) || (data.committed & COutputState::AQ_OUTPUT_STATE_GAMMA_LUT))
+    if ((data.modeset && connector->crtc->props.values.gamma_lut) || (data.committed & COutputState::ABYSSAL_OUTPUT_STATE_GAMMA_LUT))
         data.atomic.gammad = prepareGammaBlob(connector->crtc->props.values.gamma_lut, STATE.gammaLut, &data.atomic.gammaLut);
 
-    if ((data.modeset && connector->crtc->props.values.degamma_lut) || (data.committed & COutputState::AQ_OUTPUT_STATE_DEGAMMA_LUT))
+    if ((data.modeset && connector->crtc->props.values.degamma_lut) || (data.committed & COutputState::ABYSSAL_OUTPUT_STATE_DEGAMMA_LUT))
         data.atomic.degammad = prepareGammaBlob(connector->crtc->props.values.degamma_lut, STATE.degammaLut, &data.atomic.degammaLut);
 
     if (data.ctm.has_value()) {
         if (!connector->crtc->props.values.ctm)
-            connector->backend->backend->log(AQ_LOG_ERROR, "atomic drm: failed to commit ctm: no ctm prop support");
+            connector->backend->backend->log(ABYSSAL_LOG_ERROR, "atomic drm: failed to commit ctm: no ctm prop support");
         else {
             static auto doubleToS3132Fixed = [](const double val) -> uint64_t {
                 const uint64_t result = std::abs(val) * (1ULL << 32);
@@ -576,25 +576,25 @@ bool Aquamarine::CDRMAtomicImpl::prepareConnector(Hyprutils::Memory::CSharedPoin
             }
 
             if (drmModeCreatePropertyBlob(connector->backend->gpu->fd, &ctm, sizeof(drm_color_ctm), &data.atomic.ctmBlob)) {
-                connector->backend->backend->log(AQ_LOG_ERROR, "atomic drm: failed to create a ctm blob");
+                connector->backend->backend->log(ABYSSAL_LOG_ERROR, "atomic drm: failed to create a ctm blob");
                 data.atomic.ctmBlob = 0;
             } else
                 data.atomic.ctmd = true;
         }
     }
 
-    if ((data.modeset || (data.committed & COutputState::AQ_OUTPUT_STATE_HDR)) && data.hdrMetadata.has_value()) {
+    if ((data.modeset || (data.committed & COutputState::ABYSSAL_OUTPUT_STATE_HDR)) && data.hdrMetadata.has_value()) {
         if (!connector->props.values.hdr_output_metadata)
-            connector->backend->backend->log(AQ_LOG_ERROR, "atomic drm: failed to commit hdr metadata: no HDR_OUTPUT_METADATA prop support");
+            connector->backend->backend->log(ABYSSAL_LOG_ERROR, "atomic drm: failed to commit hdr metadata: no HDR_OUTPUT_METADATA prop support");
         else {
             if (drmModeCreatePropertyBlob(connector->backend->gpu->fd, &data.hdrMetadata.value(), sizeof(hdr_output_metadata), &data.atomic.hdrBlob)) {
-                connector->backend->backend->log(AQ_LOG_ERROR, "atomic drm: failed to create a hdr metadata blob");
+                connector->backend->backend->log(ABYSSAL_LOG_ERROR, "atomic drm: failed to create a hdr metadata blob");
                 data.atomic.hdrBlob = 0;
                 data.atomic.hdrd    = false;
             } else {
                 data.atomic.hdrd = true;
                 TRACE(connector->backend->backend->log(
-                    AQ_LOG_TRACE,
+                    ABYSSAL_LOG_TRACE,
                     std::format("atomic drm: setting hdr min {}, max {}, avg {}, content {}, primaries {},{} {},{} {},{} {},{}",
                                 data.hdrMetadata->hdmi_metadata_type1.min_display_mastering_luminance, data.hdrMetadata->hdmi_metadata_type1.max_display_mastering_luminance,
                                 data.hdrMetadata->hdmi_metadata_type1.max_fall, data.hdrMetadata->hdmi_metadata_type1.max_cll,
@@ -607,14 +607,14 @@ bool Aquamarine::CDRMAtomicImpl::prepareConnector(Hyprutils::Memory::CSharedPoin
         }
     }
 
-    if ((data.committed & COutputState::AQ_OUTPUT_STATE_DAMAGE) && connector->crtc->primary->props.values.fb_damage_clips && MODE) {
+    if ((data.committed & COutputState::ABYSSAL_OUTPUT_STATE_DAMAGE) && connector->crtc->primary->props.values.fb_damage_clips && MODE) {
         if (data.damage.empty())
             data.atomic.fbDamage = 0;
         else {
-            TRACE(connector->backend->backend->log(AQ_LOG_TRACE, std::format("atomic drm: clipping damage to pixel size {}", MODE->pixelSize)));
+            TRACE(connector->backend->backend->log(ABYSSAL_LOG_TRACE, std::format("atomic drm: clipping damage to pixel size {}", MODE->pixelSize)));
             std::vector<pixman_box32_t> rects = data.damage.copy().intersect(CBox{{}, MODE->pixelSize}).getRects();
             if (drmModeCreatePropertyBlob(connector->backend->gpu->fd, rects.data(), sizeof(pixman_box32_t) * rects.size(), &data.atomic.fbDamage)) {
-                connector->backend->backend->log(AQ_LOG_ERROR, "atomic drm: failed to create a damage blob");
+                connector->backend->backend->log(ABYSSAL_LOG_ERROR, "atomic drm: failed to create a damage blob");
                 return false;
             }
         }
@@ -623,7 +623,7 @@ bool Aquamarine::CDRMAtomicImpl::prepareConnector(Hyprutils::Memory::CSharedPoin
     return true;
 }
 
-bool Aquamarine::CDRMAtomicImpl::commit(Hyprutils::Memory::CSharedPointer<SDRMConnector> connector, SDRMConnectorCommitData& data) {
+bool Abyssal::CDRMAtomicImpl::commit(Abyssutils::Memory::CSharedPointer<SDRMConnector> connector, SDRMConnectorCommitData& data) {
     if (!prepareConnector(connector, data))
         return false;
 
@@ -647,7 +647,7 @@ bool Aquamarine::CDRMAtomicImpl::commit(Hyprutils::Memory::CSharedPointer<SDRMCo
     // on cached page-flips max_bpc is skipped when unchanged, so an unrelated atomic
     // failure must not be misattributed to max_bpc and permanently latch maxBpcFailed.
     if (!ok && data.atomic.maxBpcEmitted && !connector->maxBpcFailed) {
-        connector->backend->backend->log(AQ_LOG_WARNING, "drm: atomic commit failed with max_bpc set, retrying without max_bpc");
+        connector->backend->backend->log(ABYSSAL_LOG_WARNING, "drm: atomic commit failed with max_bpc set, retrying without max_bpc");
 
         // Re-build the request without max_bpc (addConnector checks maxBpcFailed
         // and will skip the max_bpc property). The property blobs created in
@@ -700,7 +700,7 @@ bool Aquamarine::CDRMAtomicImpl::commit(Hyprutils::Memory::CSharedPointer<SDRMCo
         if (retry->restateConnectors(connector)) {
             ok = retry->commit(flags);
             if (ok)
-                backend->log(AQ_LOG_DEBUG,
+                backend->log(ABYSSAL_LOG_DEBUG,
                              std::format("atomic drm: {} modeset only passed with every head restated; the driver would not "
                                          "re-allocate for a single connector",
                                          connector->szName));
@@ -733,7 +733,7 @@ bool Aquamarine::CDRMAtomicImpl::commit(Hyprutils::Memory::CSharedPointer<SDRMCo
     return ok;
 }
 
-bool Aquamarine::CDRMAtomicImpl::reset() {
+bool Abyssal::CDRMAtomicImpl::reset() {
     CDRMAtomicRequest request(backend);
 
     for (auto const& crtc : backend->crtcs) {
@@ -759,13 +759,13 @@ bool Aquamarine::CDRMAtomicImpl::reset() {
     return ok;
 }
 
-bool Aquamarine::CDRMAtomicImpl::moveCursor(SP<SDRMConnector> connector, bool skipSchedule) {
+bool Abyssal::CDRMAtomicImpl::moveCursor(SP<SDRMConnector> connector, bool skipSchedule) {
     if (!connector->output->cursorVisible || !connector->output->state->state().enabled || !connector->crtc || !connector->crtc->cursor)
         return true;
 
     if (!skipSchedule) {
-        TRACE(connector->backend->log(AQ_LOG_TRACE, "atomic moveCursor"));
-        connector->output->scheduleFrame(IOutput::AQ_SCHEDULE_CURSOR_MOVE);
+        TRACE(connector->backend->log(ABYSSAL_LOG_TRACE, "atomic moveCursor"));
+        connector->output->scheduleFrame(IOutput::ABYSSAL_SCHEDULE_CURSOR_MOVE);
     }
 
     return true;

@@ -5,14 +5,14 @@
 #include "../output/Output.hpp"
 #include "../input/Input.hpp"
 #include "FrameScheduler.hpp"
-#include <hyprutils/memory/WeakPtr.hpp>
-#include <hyprutils/memory/Atomic.hpp>
+#include <abyssutils/memory/WeakPtr.hpp>
+#include <abyssutils/memory/Atomic.hpp>
 #include <wayland-client.h>
 #include <xf86drmMode.h>
 #include <memory>
 #include <optional>
 
-namespace Aquamarine {
+namespace Abyssal {
     class CDRMBackend;
     class CDRMFB;
     class CDRMOutput;
@@ -24,18 +24,18 @@ namespace Aquamarine {
     class CDRMAsyncCommitData;
     struct SDRMConnectorCommitData;
 
-    using DRMFBList = std::vector<Hyprutils::Memory::CSharedPointer<CDRMFB>>;
+    using DRMFBList = std::vector<Abyssutils::Memory::CSharedPointer<CDRMFB>>;
 
     typedef std::function<void(void)> FIdleCallback;
 
     class CDRMBufferAttachment : public IAttachment {
       public:
-        CDRMBufferAttachment(Hyprutils::Memory::CSharedPointer<CDRMFB> fb_);
+        CDRMBufferAttachment(Abyssutils::Memory::CSharedPointer<CDRMFB> fb_);
         virtual ~CDRMBufferAttachment() {
             ;
         }
 
-        Hyprutils::Memory::CSharedPointer<CDRMFB> fb;
+        Abyssutils::Memory::CSharedPointer<CDRMFB> fb;
     };
 
     class CDRMBufferUnimportable : public IAttachment {
@@ -50,19 +50,19 @@ namespace Aquamarine {
 
     class CDRMLease {
       public:
-        static Hyprutils::Memory::CSharedPointer<CDRMLease> create(std::vector<Hyprutils::Memory::CSharedPointer<IOutput>> outputs);
+        static Abyssutils::Memory::CSharedPointer<CDRMLease> create(std::vector<Abyssutils::Memory::CSharedPointer<IOutput>> outputs);
         ~CDRMLease();
 
         void                                                     terminate();
 
         int                                                      leaseFD  = -1;
         uint32_t                                                 lesseeID = 0;
-        Hyprutils::Memory::CWeakPointer<CDRMBackend>             backend;
-        std::vector<Hyprutils::Memory::CWeakPointer<CDRMOutput>> outputs;
+        Abyssutils::Memory::CWeakPointer<CDRMBackend>             backend;
+        std::vector<Abyssutils::Memory::CWeakPointer<CDRMOutput>> outputs;
         bool                                                     active = true;
 
         struct {
-            Hyprutils::Signal::CSignalT<> destroy;
+            Abyssutils::Signal::CSignalT<> destroy;
         } events;
 
       private:
@@ -77,7 +77,7 @@ namespace Aquamarine {
       public:
         ~CDRMFB();
 
-        static Hyprutils::Memory::CSharedPointer<CDRMFB> create(Hyprutils::Memory::CSharedPointer<IBuffer> buffer_, Hyprutils::Memory::CWeakPointer<CDRMBackend> backend_,
+        static Abyssutils::Memory::CSharedPointer<CDRMFB> create(Abyssutils::Memory::CSharedPointer<IBuffer> buffer_, Abyssutils::Memory::CWeakPointer<CDRMBackend> backend_,
                                                                 bool* isNew = nullptr);
 
         void                                             closeHandles();
@@ -88,30 +88,30 @@ namespace Aquamarine {
         void                                         reimport();
 
         uint32_t                                     id = 0;
-        Hyprutils::Memory::CWeakPointer<IBuffer>     buffer;
-        Hyprutils::Memory::CWeakPointer<CDRMBackend> backend;
+        Abyssutils::Memory::CWeakPointer<IBuffer>     buffer;
+        Abyssutils::Memory::CWeakPointer<CDRMBackend> backend;
         std::array<uint32_t, 4>                      boHandles = {0, 0, 0, 0};
 
         // true if the original buffer is gone and this has been released.
         bool dead = false;
 
       private:
-        CDRMFB(Hyprutils::Memory::CSharedPointer<IBuffer> buffer_, Hyprutils::Memory::CWeakPointer<CDRMBackend> backend_);
+        CDRMFB(Abyssutils::Memory::CSharedPointer<IBuffer> buffer_, Abyssutils::Memory::CWeakPointer<CDRMBackend> backend_);
         uint32_t submitBuffer();
         void     import();
 
         bool     dropped = false, handlesClosed = false;
 
         struct {
-            Hyprutils::Signal::CHyprSignalListener destroyBuffer;
+            Abyssutils::Signal::CAbyssSignalListener destroyBuffer;
         } listeners;
     };
 
     struct SDRMLayer {
         // we expect the consumers to use double-buffering, so we keep the 2 last FBs around. If any of these goes out of
         // scope, the DRM FB will be destroyed, but the IBuffer will stay, as long as it's ref'd somewhere.
-        Hyprutils::Memory::CSharedPointer<CDRMFB>    front /* currently displaying */, back /* submitted */, last /* keep just in case */;
-        Hyprutils::Memory::CWeakPointer<CDRMBackend> backend;
+        Abyssutils::Memory::CSharedPointer<CDRMFB>    front /* currently displaying */, back /* submitted */, last /* keep just in case */;
+        Abyssutils::Memory::CWeakPointer<CDRMBackend> backend;
     };
 
     struct SDRMPlane {
@@ -121,9 +121,9 @@ namespace Aquamarine {
         uint32_t                                     id        = 0;
         uint32_t                                     initialID = 0;
 
-        Hyprutils::Memory::CSharedPointer<CDRMFB>    front /* currently displaying */, back /* submitted */, last /* keep just in case */;
-        Hyprutils::Memory::CWeakPointer<CDRMBackend> backend;
-        Hyprutils::Memory::CWeakPointer<SDRMPlane>   self;
+        Abyssutils::Memory::CSharedPointer<CDRMFB>    front /* currently displaying */, back /* submitted */, last /* keep just in case */;
+        Abyssutils::Memory::CWeakPointer<CDRMBackend> backend;
+        Abyssutils::Memory::CWeakPointer<SDRMPlane>   self;
         bool                                         backSet = false;
         std::vector<SDRMFormat>                      formats;
 
@@ -173,7 +173,7 @@ namespace Aquamarine {
 
         struct {
             std::optional<uintptr_t>                       id; // nullopt when nothing is in flight
-            Hyprutils::Memory::CWeakPointer<SDRMConnector> connector;
+            Abyssutils::Memory::CWeakPointer<SDRMConnector> connector;
             bool                                           async       = false; // PAGE_FLIP_ASYNC
             uint64_t                                       commitID    = 0;
             bool                                           resultReady = true;
@@ -186,7 +186,7 @@ namespace Aquamarine {
             } early;
         } pendingFlip;
 
-        uintptr_t armPageFlip(Hyprutils::Memory::CWeakPointer<SDRMConnector> connector, bool async, std::optional<uintptr_t> id = std::nullopt, uint64_t commitID = 0,
+        uintptr_t armPageFlip(Abyssutils::Memory::CWeakPointer<SDRMConnector> connector, bool async, std::optional<uintptr_t> id = std::nullopt, uint64_t commitID = 0,
                               bool resultReady = true);
         void      disarmPageFlip();
 
@@ -204,10 +204,10 @@ namespace Aquamarine {
             bool ctmStateKnown = false;
         } atomic;
 
-        Hyprutils::Memory::CSharedPointer<SDRMPlane> primary;
-        Hyprutils::Memory::CSharedPointer<SDRMPlane> cursor;
-        Hyprutils::Memory::CWeakPointer<CDRMBackend> backend;
-        Hyprutils::Memory::CSharedPointer<CDRMFB>    pendingCursor;
+        Abyssutils::Memory::CSharedPointer<SDRMPlane> primary;
+        Abyssutils::Memory::CSharedPointer<SDRMPlane> cursor;
+        Abyssutils::Memory::CWeakPointer<CDRMBackend> backend;
+        Abyssutils::Memory::CSharedPointer<CDRMFB>    pendingCursor;
 
         union UDRMCRTCProps {
             struct {
@@ -235,13 +235,13 @@ namespace Aquamarine {
         virtual ~CDRMOutput();
         virtual bool                                                      commit();
         virtual bool                                                      test();
-        virtual Hyprutils::Memory::CSharedPointer<IBackendImplementation> getBackend();
-        virtual bool                                                      setCursor(Hyprutils::Memory::CSharedPointer<IBuffer> buffer, const Hyprutils::Math::Vector2D& hotspot);
-        virtual void                                                      moveCursor(const Hyprutils::Math::Vector2D& coord, bool skipSchedule = false);
-        virtual void                                                      scheduleFrame(const scheduleFrameReason reason = AQ_SCHEDULE_UNKNOWN);
+        virtual Abyssutils::Memory::CSharedPointer<IBackendImplementation> getBackend();
+        virtual bool                                                      setCursor(Abyssutils::Memory::CSharedPointer<IBuffer> buffer, const Abyssutils::Math::Vector2D& hotspot);
+        virtual void                                                      moveCursor(const Abyssutils::Math::Vector2D& coord, bool skipSchedule = false);
+        virtual void                                                      scheduleFrame(const scheduleFrameReason reason = ABYSSAL_SCHEDULE_UNKNOWN);
         virtual void                                                      setCursorVisible(bool visible);
         virtual bool                                                      hasCursorPlane() const;
-        virtual Hyprutils::Math::Vector2D                                 cursorPlaneSize();
+        virtual Abyssutils::Math::Vector2D                                 cursorPlaneSize();
         virtual std::optional<std::chrono::steady_clock::time_point>      nextVBlank() const;
         virtual size_t                                                    getGammaSize();
         virtual size_t                                                    getDeGammaSize();
@@ -254,36 +254,36 @@ namespace Aquamarine {
 
         int                                                               getConnectorID();
 
-        Hyprutils::Memory::CWeakPointer<CDRMOutput>                       self;
-        Hyprutils::Memory::CWeakPointer<CDRMLease>                        lease;
+        Abyssutils::Memory::CWeakPointer<CDRMOutput>                       self;
+        Abyssutils::Memory::CWeakPointer<CDRMLease>                        lease;
         bool                                                              cursorVisible = true;
-        Hyprutils::Math::Vector2D                                         cursorPos; // without hotspot
-        Hyprutils::Math::Vector2D                                         cursorHotspot;
+        Abyssutils::Math::Vector2D                                         cursorPos; // without hotspot
+        Abyssutils::Math::Vector2D                                         cursorHotspot;
 
         bool enabledState = true; // actual enabled state. Should be synced with state->state().enabled after a new frame
 
       private:
-        CDRMOutput(const std::string& name_, Hyprutils::Memory::CWeakPointer<CDRMBackend> backend_, Hyprutils::Memory::CSharedPointer<SDRMConnector> connector_);
+        CDRMOutput(const std::string& name_, Abyssutils::Memory::CWeakPointer<CDRMBackend> backend_, Abyssutils::Memory::CSharedPointer<SDRMConnector> connector_);
 
         bool commitState(bool onlyTest = false);
-        bool prepareAsyncCommitData(const COutputState::CSnapshot& snapshot, SDRMConnectorCommitData& data, Hyprutils::OS::CFileDescriptor& mgpuFence, bool& mgpuAcquired,
+        bool prepareAsyncCommitData(const COutputState::CSnapshot& snapshot, SDRMConnectorCommitData& data, Abyssutils::OS::CFileDescriptor& mgpuFence, bool& mgpuAcquired,
                                     bool& requiresSync);
 
-        Hyprutils::Memory::CWeakPointer<CDRMBackend>                 backend;
-        Hyprutils::Memory::CSharedPointer<SDRMConnector>             connector;
-        Hyprutils::Memory::CSharedPointer<std::function<void(void)>> frameIdle;
-        Hyprutils::Signal::CHyprSignalListener                       frameReadyListener;
-        Hyprutils::Signal::CHyprSignalListener                       rescheduleListener;
+        Abyssutils::Memory::CWeakPointer<CDRMBackend>                 backend;
+        Abyssutils::Memory::CSharedPointer<SDRMConnector>             connector;
+        Abyssutils::Memory::CSharedPointer<std::function<void(void)>> frameIdle;
+        Abyssutils::Signal::CAbyssSignalListener                       frameReadyListener;
+        Abyssutils::Signal::CAbyssSignalListener                       rescheduleListener;
 
         struct {
-            Hyprutils::Memory::CSharedPointer<CSwapchain> swapchain;
-            Hyprutils::Memory::CSharedPointer<CSwapchain> cursorSwapchain;
+            Abyssutils::Memory::CSharedPointer<CSwapchain> swapchain;
+            Abyssutils::Memory::CSharedPointer<CSwapchain> cursorSwapchain;
         } mgpu;
 
         bool                                                               lastCommitNoBuffer = true;
         uint64_t                                                           asyncOwnerID = 0, pendingAsyncCommit = 0;
         bool                                                               asyncCommitEventPending = false;
-        Hyprutils::Memory::CAtomicSharedPointer<CDRMCursorPositionMailbox> cursorMailbox;
+        Abyssutils::Memory::CAtomicSharedPointer<CDRMCursorPositionMailbox> cursorMailbox;
 
         friend struct SDRMConnector;
         friend class CDRMLease;
@@ -291,9 +291,9 @@ namespace Aquamarine {
     };
 
     struct SDRMConnectorCommitData {
-        Hyprutils::Memory::CSharedPointer<CDRMFB> mainFB, cursorFB;
+        Abyssutils::Memory::CSharedPointer<CDRMFB> mainFB, cursorFB;
         COutputState::SInternalState              outputState;
-        Hyprutils::Math::Vector2D                 cursorPos, cursorHotspot;
+        Abyssutils::Math::Vector2D                 cursorPos, cursorHotspot;
         bool                                      cursorVisible    = false;
         bool                                      modeset          = false;
         bool                                      blocking         = false;
@@ -303,9 +303,9 @@ namespace Aquamarine {
         uint32_t                                  committed        = 0;
         bool                                      primaryFBChanged = false, cursorFBChanged = false;
         DRMFBList                                 retiredFBs;
-        Hyprutils::Math::CRegion                  damage;
+        Abyssutils::Math::CRegion                  damage;
         drmModeModeInfo                           modeInfo;
-        std::optional<Hyprutils::Math::Mat3x3>    ctm;
+        std::optional<Abyssutils::Math::Mat3x3>    ctm;
         std::optional<hdr_output_metadata>        hdrMetadata;
 
         struct {
@@ -338,7 +338,7 @@ namespace Aquamarine {
             bool maxBpcEmitted = false;
         } atomic;
 
-        void calculateMode(Hyprutils::Memory::CSharedPointer<SDRMConnector> connector);
+        void calculateMode(Abyssutils::Memory::CSharedPointer<SDRMConnector> connector);
     };
 
     struct SDRMConnector {
@@ -355,7 +355,7 @@ namespace Aquamarine {
         bool                                           init(drmModeConnector* connector);
         void                                           connect(drmModeConnector* connector);
         void                                           disconnect();
-        Hyprutils::Memory::CSharedPointer<SDRMCRTC>    getCurrentCRTC(const drmModeConnector* connector);
+        Abyssutils::Memory::CSharedPointer<SDRMCRTC>    getCurrentCRTC(const drmModeConnector* connector);
         drmModeModeInfo*                               getCurrentMode();
         IOutput::SParsedEDID                           parseEDID(std::vector<uint8_t> data);
         bool                                           commitState(SDRMConnectorCommitData& data);
@@ -363,19 +363,19 @@ namespace Aquamarine {
         void                                           onPresent(bool primary = true, bool cursor = true, DRMFBList* retired = nullptr);
         void                                           recheckCRTCProps();
         void                                           parseTileInfo();
-        void                                           releaseFBBuffer(const Hyprutils::Memory::CSharedPointer<CDRMFB> fb);
+        void                                           releaseFBBuffer(const Abyssutils::Memory::CSharedPointer<CDRMFB> fb);
         void                                           releaseFBReferences(DRMFBList* retired = nullptr);
         void                                           invalidateFrame();
-        void                                           setCRTC(Hyprutils::Memory::CSharedPointer<SDRMCRTC> newCRTC);
+        void                                           setCRTC(Abyssutils::Memory::CSharedPointer<SDRMCRTC> newCRTC);
 
-        Hyprutils::Memory::CSharedPointer<CDRMOutput>  output;
-        Hyprutils::Memory::CWeakPointer<CDRMBackend>   backend;
-        Hyprutils::Memory::CWeakPointer<SDRMConnector> self;
+        Abyssutils::Memory::CSharedPointer<CDRMOutput>  output;
+        Abyssutils::Memory::CWeakPointer<CDRMBackend>   backend;
+        Abyssutils::Memory::CWeakPointer<SDRMConnector> self;
         std::string                                    szName;
         drmModeConnection                              status       = DRM_MODE_DISCONNECTED;
         uint32_t                                       id           = 0;
         std::array<uint64_t, 2>                        maxBpcBounds = {0, 0};
-        Hyprutils::Memory::CSharedPointer<SDRMCRTC>    crtc;
+        Abyssutils::Memory::CSharedPointer<SDRMCRTC>    crtc;
         int32_t                                        refresh       = 0;
         uint32_t                                       possibleCrtcs = 0;
         std::string                                    make, serial, model;
@@ -383,10 +383,10 @@ namespace Aquamarine {
 
         STileInfo                                      tileInfo;
         bool                                           tilingRedundant = false;
-        Hyprutils::Math::Vector2D                      maxMode;
+        Abyssutils::Math::Vector2D                      maxMode;
 
         bool                                           cursorEnabled = false;
-        Hyprutils::Math::Vector2D                      cursorPos, cursorSize, cursorHotspot;
+        Abyssutils::Math::Vector2D                      cursorPos, cursorSize, cursorHotspot;
 
         CFrameScheduler                                sched;
 
@@ -397,7 +397,7 @@ namespace Aquamarine {
         // commits for this connector (works around buggy drivers, e.g. amdgpu eDP).
         bool                                           maxBpcFailed = false;
 
-        Hyprutils::Memory::CSharedPointer<SOutputMode> fallbackMode;
+        Abyssutils::Memory::CSharedPointer<SOutputMode> fallbackMode;
 
         struct {
             bool vrrEnabled = false;
@@ -409,7 +409,7 @@ namespace Aquamarine {
             uint16_t          contentType = 0;
             uint32_t          crtcID      = 0;
             bool              propsCached = false;
-            eOutputColorRange colorRange  = AQ_OUTPUT_COLOR_RANGE_AUTO;
+            eOutputColorRange colorRange  = ABYSSAL_OUTPUT_COLOR_RANGE_AUTO;
         } atomic;
 
         union UDRMConnectorProps {
@@ -450,11 +450,11 @@ namespace Aquamarine {
     class IDRMImplementation {
       public:
         virtual ~IDRMImplementation()                                                                                  = default;
-        virtual bool commit(Hyprutils::Memory::CSharedPointer<SDRMConnector> connector, SDRMConnectorCommitData& data) = 0;
+        virtual bool commit(Abyssutils::Memory::CSharedPointer<SDRMConnector> connector, SDRMConnectorCommitData& data) = 0;
         virtual bool reset()                                                                                           = 0;
 
         // moving a cursor IIRC is almost instant on most hardware so we don't have to wait for a commit.
-        virtual bool moveCursor(Hyprutils::Memory::CSharedPointer<SDRMConnector> connector, bool skipSchedule = false) = 0;
+        virtual bool moveCursor(Abyssutils::Memory::CSharedPointer<SDRMConnector> connector, bool skipSchedule = false) = 0;
     };
 
     class CDRMBackend : public IBackendImplementation {
@@ -462,21 +462,21 @@ namespace Aquamarine {
         virtual ~CDRMBackend();
         virtual eBackendType                                               type();
         virtual bool                                                       start();
-        virtual std::vector<Hyprutils::Memory::CSharedPointer<SPollFD>>    pollFDs();
+        virtual std::vector<Abyssutils::Memory::CSharedPointer<SPollFD>>    pollFDs();
         virtual int                                                        drmFD();
         virtual bool                                                       dispatchEvents();
         virtual uint32_t                                                   capabilities();
-        virtual bool                                                       setCursor(Hyprutils::Memory::CSharedPointer<IBuffer> buffer, const Hyprutils::Math::Vector2D& hotspot);
+        virtual bool                                                       setCursor(Abyssutils::Memory::CSharedPointer<IBuffer> buffer, const Abyssutils::Math::Vector2D& hotspot);
         virtual void                                                       onReady();
         virtual std::vector<SDRMFormat>                                    getRenderFormats();
         virtual std::vector<SDRMFormat>                                    getCursorFormats();
         virtual bool                                                       createOutput(const std::string& name = "");
-        virtual Hyprutils::Memory::CSharedPointer<IAllocator>              preferredAllocator();
+        virtual Abyssutils::Memory::CSharedPointer<IAllocator>              preferredAllocator();
         virtual std::vector<SDRMFormat>                                    getRenderableFormats();
-        virtual std::vector<Hyprutils::Memory::CSharedPointer<IAllocator>> getAllocators();
-        virtual Hyprutils::Memory::CWeakPointer<IBackendImplementation>    getPrimary();
+        virtual std::vector<Abyssutils::Memory::CSharedPointer<IAllocator>> getAllocators();
+        virtual Abyssutils::Memory::CWeakPointer<IBackendImplementation>    getPrimary();
 
-        Hyprutils::Memory::CWeakPointer<CDRMBackend>                       self;
+        Abyssutils::Memory::CWeakPointer<CDRMBackend>                       self;
 
         void                                                               log(eBackendLogLevel, const std::string&);
         bool                                                               sessionActive();
@@ -486,19 +486,19 @@ namespace Aquamarine {
         std::string                                                        gpuName;
         virtual int                                                        drmRenderNodeFD();
         virtual eBackendGPUDriver                                          gpuDriver();
-        Hyprutils::Memory::CSharedPointer<SDRMCRTC>                        crtcByID(uint32_t id);
+        Abyssutils::Memory::CSharedPointer<SDRMCRTC>                        crtcByID(uint32_t id);
 
         void                                                               dispatchCommitResults();
         void                                                               handlePageFlip(uintptr_t flipID, unsigned int seq, unsigned int sec, unsigned int usec, uint32_t crtcID);
 
       private:
-        CDRMBackend(Hyprutils::Memory::CSharedPointer<CBackend> backend);
+        CDRMBackend(Abyssutils::Memory::CSharedPointer<CBackend> backend);
 
-        static std::vector<Hyprutils::Memory::CSharedPointer<CDRMBackend>> attempt(Hyprutils::Memory::CSharedPointer<CBackend> backend);
-        static Hyprutils::Memory::CSharedPointer<CDRMBackend>              fromGpu(std::string path, Hyprutils::Memory::CSharedPointer<CBackend> backend,
-                                                                                   Hyprutils::Memory::CSharedPointer<CDRMBackend> primary);
+        static std::vector<Abyssutils::Memory::CSharedPointer<CDRMBackend>> attempt(Abyssutils::Memory::CSharedPointer<CBackend> backend);
+        static Abyssutils::Memory::CSharedPointer<CDRMBackend>              fromGpu(std::string path, Abyssutils::Memory::CSharedPointer<CBackend> backend,
+                                                                                   Abyssutils::Memory::CSharedPointer<CDRMBackend> primary);
 
-        bool     registerGPU(Hyprutils::Memory::CSharedPointer<CSessionDevice> gpu_, Hyprutils::Memory::CSharedPointer<CDRMBackend> primary_ = {});
+        bool     registerGPU(Abyssutils::Memory::CSharedPointer<CSessionDevice> gpu_, Abyssutils::Memory::CSharedPointer<CDRMBackend> primary_ = {});
         bool     checkFeatures();
         bool     initResources();
         bool     initMgpu();
@@ -515,53 +515,53 @@ namespace Aquamarine {
         bool     initCommitThread();
         void     stopCommitThread();
         void     cancelAsyncOutput(CDRMOutput* output, bool renewOwner = false);
-        void     emitAsyncCommitEvent(Hyprutils::Memory::CSharedPointer<CDRMOutput> output);
+        void     emitAsyncCommitEvent(Abyssutils::Memory::CSharedPointer<CDRMOutput> output);
         void     flushAsyncCommitEvents();
         bool     pauseCommitQueue(uint64_t queueKey);
         void     resumeCommitQueue(uint64_t queueKey);
         uint64_t nextAsyncOwnerID();
 
-        Hyprutils::Memory::CSharedPointer<CSessionDevice>     gpu;
-        Hyprutils::Memory::CSharedPointer<IDRMImplementation> impl;
-        Hyprutils::Memory::CWeakPointer<CDRMBackend>          primary;
+        Abyssutils::Memory::CSharedPointer<CSessionDevice>     gpu;
+        Abyssutils::Memory::CSharedPointer<IDRMImplementation> impl;
+        Abyssutils::Memory::CWeakPointer<CDRMBackend>          primary;
 
         struct {
-            Hyprutils::Memory::CSharedPointer<IAllocator>   allocator;
-            Hyprutils::Memory::CSharedPointer<CDRMRenderer> renderer; // may be null if creation fails
+            Abyssutils::Memory::CSharedPointer<IAllocator>   allocator;
+            Abyssutils::Memory::CSharedPointer<CDRMRenderer> renderer; // may be null if creation fails
         } rendererState;
 
         bool                                                          rendererRequired = true;
-        eBackendGPUDriver                                             driver           = AQ_BACKEND_GPU_DRIVER_UNKNOWN;
+        eBackendGPUDriver                                             driver           = ABYSSAL_BACKEND_GPU_DRIVER_UNKNOWN;
 
-        Hyprutils::Memory::CWeakPointer<CBackend>                     backend;
+        Abyssutils::Memory::CWeakPointer<CBackend>                     backend;
 
-        std::vector<Hyprutils::Memory::CSharedPointer<SDRMCRTC>>      crtcs;
-        std::vector<Hyprutils::Memory::CSharedPointer<SDRMPlane>>     planes;
-        std::vector<Hyprutils::Memory::CSharedPointer<SDRMConnector>> connectors;
+        std::vector<Abyssutils::Memory::CSharedPointer<SDRMCRTC>>      crtcs;
+        std::vector<Abyssutils::Memory::CSharedPointer<SDRMPlane>>     planes;
+        std::vector<Abyssutils::Memory::CSharedPointer<SDRMConnector>> connectors;
         std::vector<SDRMFormat>                                       formats;
         std::vector<SDRMFormat>                                       glFormats;
         uintptr_t                                                     m_lastPageFlipID           = 0;
         uint64_t                                                      m_lastAsyncOwnerID         = 0;
         size_t                                                        m_pendingAsyncCommitEvents = 0;
         uintptr_t                                                     nextPageFlipID();
-        Hyprutils::Memory::CUniquePointer<CDRMCommitThread>           commitThread;
+        Abyssutils::Memory::CUniquePointer<CDRMCommitThread>           commitThread;
         std::chrono::microseconds                                     commitLeadTime = std::chrono::microseconds{2000};
 
-        Hyprutils::Memory::CSharedPointer<CDRMDumbAllocator>          dumbAllocator;
+        Abyssutils::Memory::CSharedPointer<CDRMDumbAllocator>          dumbAllocator;
 
         bool                                                          atomic = false;
 
         struct {
-            Hyprutils::Math::Vector2D cursorSize;
+            Abyssutils::Math::Vector2D cursorSize;
             bool                      supportsAsyncCommit     = false;
             bool                      supportsAddFb2Modifiers = false;
             bool                      supportsTimelines       = false;
         } drmProps;
 
         struct {
-            Hyprutils::Signal::CHyprSignalListener sessionActivate;
-            Hyprutils::Signal::CHyprSignalListener gpuChange;
-            Hyprutils::Signal::CHyprSignalListener gpuRemove;
+            Abyssutils::Signal::CAbyssSignalListener sessionActivate;
+            Abyssutils::Signal::CAbyssSignalListener gpuChange;
+            Abyssutils::Signal::CAbyssSignalListener gpuRemove;
         } listeners;
 
         friend class CBackend;

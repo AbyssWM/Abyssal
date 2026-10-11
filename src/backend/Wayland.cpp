@@ -1,5 +1,5 @@
 #include <algorithm>
-#include <aquamarine/backend/Wayland.hpp>
+#include <abyssal/backend/Wayland.hpp>
 #include <wayland.hpp>
 #include <xdg-shell.hpp>
 #include "Shared.hpp"
@@ -12,9 +12,9 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
-using namespace Aquamarine;
-using namespace Hyprutils::Memory;
-using namespace Hyprutils::Math;
+using namespace Abyssal;
+using namespace Abyssutils::Memory;
+using namespace Abyssutils::Math;
 #define SP CSharedPointer
 
 static std::pair<int, std::string> openExclusiveShm() {
@@ -61,7 +61,7 @@ wl_shm_format shmFormatFromDRM(uint32_t drmFormat) {
     return (wl_shm_format)drmFormat;
 }
 
-Aquamarine::CWaylandBackend::~CWaylandBackend() {
+Abyssal::CWaylandBackend::~CWaylandBackend() {
     outputs.clear();
     keyboards.clear();
     pointers.clear();
@@ -86,66 +86,66 @@ Aquamarine::CWaylandBackend::~CWaylandBackend() {
     }
 }
 
-eBackendType Aquamarine::CWaylandBackend::type() {
-    return AQ_BACKEND_WAYLAND;
+eBackendType Abyssal::CWaylandBackend::type() {
+    return ABYSSAL_BACKEND_WAYLAND;
 }
 
-Aquamarine::CWaylandBackend::CWaylandBackend(SP<CBackend> backend_) : backend(backend_) {
+Abyssal::CWaylandBackend::CWaylandBackend(SP<CBackend> backend_) : backend(backend_) {
     ;
 }
 
-bool Aquamarine::CWaylandBackend::start() {
-    backend->log(AQ_LOG_DEBUG, "Starting the Wayland backend!");
+bool Abyssal::CWaylandBackend::start() {
+    backend->log(ABYSSAL_LOG_DEBUG, "Starting the Wayland backend!");
 
     waylandState.display = wl_display_connect(nullptr);
 
     if (!waylandState.display) {
-        backend->log(AQ_LOG_ERROR, "Wayland backend cannot start: wl_display_connect failed (is a wayland compositor running?)");
+        backend->log(ABYSSAL_LOG_ERROR, "Wayland backend cannot start: wl_display_connect failed (is a wayland compositor running?)");
         return false;
     }
 
     auto XDGCURRENTDESKTOP = getenv("XDG_CURRENT_DESKTOP");
-    backend->log(AQ_LOG_DEBUG, std::format("Connected to a wayland compositor: {}", (XDGCURRENTDESKTOP ? XDGCURRENTDESKTOP : "unknown (XDG_CURRENT_DEKSTOP unset?)")));
+    backend->log(ABYSSAL_LOG_DEBUG, std::format("Connected to a wayland compositor: {}", (XDGCURRENTDESKTOP ? XDGCURRENTDESKTOP : "unknown (XDG_CURRENT_DEKSTOP unset?)")));
 
     waylandState.registry = makeShared<CCWlRegistry>((wl_proxy*)wl_display_get_registry(waylandState.display));
 
-    backend->log(AQ_LOG_DEBUG, std::format("Got registry at 0x{:x}", (uintptr_t)waylandState.registry->resource()));
+    backend->log(ABYSSAL_LOG_DEBUG, std::format("Got registry at 0x{:x}", (uintptr_t)waylandState.registry->resource()));
 
     waylandState.registry->setGlobal([this](CCWlRegistry* r, uint32_t id, const char* name, uint32_t version) {
-        TRACE(backend->log(AQ_LOG_TRACE, std::format(" | received global: {} (version {}) with id {}", name, version, id)));
+        TRACE(backend->log(ABYSSAL_LOG_TRACE, std::format(" | received global: {} (version {}) with id {}", name, version, id)));
 
         const std::string NAME = name;
 
         if (NAME == "wl_seat") {
-            TRACE(backend->log(AQ_LOG_TRACE, std::format("  > binding to global: {} (version {}) with id {}", name, 9, id)));
+            TRACE(backend->log(ABYSSAL_LOG_TRACE, std::format("  > binding to global: {} (version {}) with id {}", name, 9, id)));
             waylandState.seat = makeShared<CCWlSeat>((wl_proxy*)wl_registry_bind((wl_registry*)waylandState.registry->resource(), id, &wl_seat_interface, 9));
             initSeat();
         } else if (NAME == "xdg_wm_base") {
-            TRACE(backend->log(AQ_LOG_TRACE, std::format("  > binding to global: {} (version {}) with id {}", name, 6, id)));
+            TRACE(backend->log(ABYSSAL_LOG_TRACE, std::format("  > binding to global: {} (version {}) with id {}", name, 6, id)));
             waylandState.xdg = makeShared<CCXdgWmBase>((wl_proxy*)wl_registry_bind((wl_registry*)waylandState.registry->resource(), id, &xdg_wm_base_interface, 6));
             initShell();
         } else if (NAME == "wl_compositor") {
-            TRACE(backend->log(AQ_LOG_TRACE, std::format("  > binding to global: {} (version {}) with id {}", name, 6, id)));
+            TRACE(backend->log(ABYSSAL_LOG_TRACE, std::format("  > binding to global: {} (version {}) with id {}", name, 6, id)));
             waylandState.compositor = makeShared<CCWlCompositor>((wl_proxy*)wl_registry_bind((wl_registry*)waylandState.registry->resource(), id, &wl_compositor_interface, 6));
         } else if (NAME == "wl_shm") {
-            TRACE(backend->log(AQ_LOG_TRACE, std::format("  > binding to global: {} (version {}) with id {}", name, 1, id)));
+            TRACE(backend->log(ABYSSAL_LOG_TRACE, std::format("  > binding to global: {} (version {}) with id {}", name, 1, id)));
             waylandState.shm = makeShared<CCWlShm>((wl_proxy*)wl_registry_bind((wl_registry*)waylandState.registry->resource(), id, &wl_shm_interface, 1));
         } else if (NAME == "zwp_linux_dmabuf_v1") {
-            TRACE(backend->log(AQ_LOG_TRACE, std::format("  > binding to global: {} (version {}) with id {}", name, 4, id)));
+            TRACE(backend->log(ABYSSAL_LOG_TRACE, std::format("  > binding to global: {} (version {}) with id {}", name, 4, id)));
             waylandState.dmabuf =
                 makeShared<CCZwpLinuxDmabufV1>((wl_proxy*)wl_registry_bind((wl_registry*)waylandState.registry->resource(), id, &zwp_linux_dmabuf_v1_interface, 4));
             if (!initDmabuf()) {
-                backend->log(AQ_LOG_ERROR, "Wayland backend cannot start: zwp_linux_dmabuf_v1 init failed");
+                backend->log(ABYSSAL_LOG_ERROR, "Wayland backend cannot start: zwp_linux_dmabuf_v1 init failed");
                 waylandState.dmabufFailed = true;
             }
         }
     });
-    waylandState.registry->setGlobalRemove([this](CCWlRegistry* r, uint32_t id) { backend->log(AQ_LOG_DEBUG, std::format("Global {} removed", id)); });
+    waylandState.registry->setGlobalRemove([this](CCWlRegistry* r, uint32_t id) { backend->log(ABYSSAL_LOG_DEBUG, std::format("Global {} removed", id)); });
 
     wl_display_roundtrip(waylandState.display);
 
     if (!waylandState.xdg || !waylandState.compositor || !waylandState.seat || !waylandState.dmabuf || waylandState.dmabufFailed || !waylandState.shm) {
-        backend->log(AQ_LOG_ERROR, "Wayland backend cannot start: Missing protocols");
+        backend->log(ABYSSAL_LOG_ERROR, "Wayland backend cannot start: Missing protocols");
         return false;
     }
 
@@ -156,16 +156,16 @@ bool Aquamarine::CWaylandBackend::start() {
     return true;
 }
 
-int Aquamarine::CWaylandBackend::drmFD() {
+int Abyssal::CWaylandBackend::drmFD() {
     return drmState.fd;
 }
 
-int Aquamarine::CWaylandBackend::drmRenderNodeFD() {
+int Abyssal::CWaylandBackend::drmRenderNodeFD() {
     // creation already attempts to use the rendernode, so just return same fd as drmFD().
     return drmState.fd;
 }
 
-bool Aquamarine::CWaylandBackend::createOutput(const std::string& szName) {
+bool Abyssal::CWaylandBackend::createOutput(const std::string& szName) {
     std::string name = szName;
     if (name.empty()) {
         // skip past any auto-name slots already claimed by an explicit createOutput,
@@ -174,7 +174,7 @@ bool Aquamarine::CWaylandBackend::createOutput(const std::string& szName) {
             name = std::format("WAYLAND-{}", ++lastOutputID);
         } while (std::ranges::any_of(outputs, [&name](const auto& o) { return o->name == name; }));
     } else if (std::ranges::any_of(outputs, [&name](const auto& o) { return o->name == name; })) {
-        backend->log(AQ_LOG_ERROR, std::format("Wayland: refusing to create output {}, name already in use", name));
+        backend->log(ABYSSAL_LOG_ERROR, std::format("Wayland: refusing to create output {}, name already in use", name));
         return false;
     }
 
@@ -186,14 +186,14 @@ bool Aquamarine::CWaylandBackend::createOutput(const std::string& szName) {
     return true;
 }
 
-std::vector<Hyprutils::Memory::CSharedPointer<SPollFD>> Aquamarine::CWaylandBackend::pollFDs() {
+std::vector<Abyssutils::Memory::CSharedPointer<SPollFD>> Abyssal::CWaylandBackend::pollFDs() {
     if (!waylandState.display)
         return {};
 
     return {makeShared<SPollFD>(wl_display_get_fd(waylandState.display), [this]() { dispatchEvents(); })};
 }
 
-bool Aquamarine::CWaylandBackend::dispatchEvents() {
+bool Abyssal::CWaylandBackend::dispatchEvents() {
     wl_display_flush(waylandState.display);
 
     if (wl_display_prepare_read(waylandState.display) == 0) {
@@ -219,30 +219,30 @@ bool Aquamarine::CWaylandBackend::dispatchEvents() {
     return true;
 }
 
-uint32_t Aquamarine::CWaylandBackend::capabilities() {
-    return AQ_BACKEND_CAPABILITY_POINTER;
+uint32_t Abyssal::CWaylandBackend::capabilities() {
+    return ABYSSAL_BACKEND_CAPABILITY_POINTER;
 }
 
-bool Aquamarine::CWaylandBackend::setCursor(Hyprutils::Memory::CSharedPointer<IBuffer> buffer, const Hyprutils::Math::Vector2D& hotspot) {
+bool Abyssal::CWaylandBackend::setCursor(Abyssutils::Memory::CSharedPointer<IBuffer> buffer, const Abyssutils::Math::Vector2D& hotspot) {
     // TODO:
     return true;
 }
 
-void Aquamarine::CWaylandBackend::onReady() {
+void Abyssal::CWaylandBackend::onReady() {
     for (auto const& o : outputs) {
         o->swapchain = CSwapchain::create(backend->primaryAllocator, self.lock());
         if (!o->swapchain) {
-            backend->log(AQ_LOG_ERROR, std::format("Output {} failed: swapchain creation failed", o->name));
+            backend->log(ABYSSAL_LOG_ERROR, std::format("Output {} failed: swapchain creation failed", o->name));
             continue;
         }
     }
 }
 
-Aquamarine::CWaylandKeyboard::CWaylandKeyboard(SP<CCWlKeyboard> keyboard_, Hyprutils::Memory::CWeakPointer<CWaylandBackend> backend_) : keyboard(keyboard_), backend(backend_) {
+Abyssal::CWaylandKeyboard::CWaylandKeyboard(SP<CCWlKeyboard> keyboard_, Abyssutils::Memory::CWeakPointer<CWaylandBackend> backend_) : keyboard(keyboard_), backend(backend_) {
     if (!keyboard->resource())
         return;
 
-    backend->backend->log(AQ_LOG_DEBUG, "New wayland keyboard wl_keyboard");
+    backend->backend->log(ABYSSAL_LOG_DEBUG, "New wayland keyboard wl_keyboard");
 
     keyboard->setKey([this](CCWlKeyboard* r, uint32_t serial, uint32_t timeMs, uint32_t key, wl_keyboard_key_state state) {
         events.key.emit(SKeyEvent{
@@ -262,19 +262,19 @@ Aquamarine::CWaylandKeyboard::CWaylandKeyboard(SP<CCWlKeyboard> keyboard_, Hypru
     });
 }
 
-Aquamarine::CWaylandKeyboard::~CWaylandKeyboard() {
+Abyssal::CWaylandKeyboard::~CWaylandKeyboard() {
     ;
 }
 
-const std::string& Aquamarine::CWaylandKeyboard::getName() {
+const std::string& Abyssal::CWaylandKeyboard::getName() {
     return name;
 }
 
-Aquamarine::CWaylandPointer::CWaylandPointer(SP<CCWlPointer> pointer_, Hyprutils::Memory::CWeakPointer<CWaylandBackend> backend_) : pointer(pointer_), backend(backend_) {
+Abyssal::CWaylandPointer::CWaylandPointer(SP<CCWlPointer> pointer_, Abyssutils::Memory::CWeakPointer<CWaylandBackend> backend_) : pointer(pointer_), backend(backend_) {
     if (!pointer->resource())
         return;
 
-    backend->backend->log(AQ_LOG_DEBUG, "New wayland pointer wl_pointer");
+    backend->backend->log(ABYSSAL_LOG_DEBUG, "New wayland pointer wl_pointer");
 
     pointer->setMotion([this](CCWlPointer* r, uint32_t timeMs, wl_fixed_t x, wl_fixed_t y) { emitWarp(timeMs, x, y); });
 
@@ -286,7 +286,7 @@ Aquamarine::CWaylandPointer::CWaylandPointer(SP<CCWlPointer> pointer_, Hyprutils
                 continue;
 
             backend->focusedOutput = o;
-            backend->backend->log(AQ_LOG_DEBUG, std::format("[wayland] focus changed: {}", o->name));
+            backend->backend->log(ABYSSAL_LOG_DEBUG, std::format("[wayland] focus changed: {}", o->name));
             o->onEnter(pointer, serial);
             emitWarp(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count(), x, y);
             break;
@@ -316,7 +316,7 @@ Aquamarine::CWaylandPointer::CWaylandPointer(SP<CCWlPointer> pointer_, Hyprutils
     pointer->setAxis([this](CCWlPointer* r, uint32_t timeMs, wl_pointer_axis axis, wl_fixed_t value) {
         events.axis.emit(SAxisEvent{
             .timeMs = timeMs,
-            .axis   = axis == WL_POINTER_AXIS_HORIZONTAL_SCROLL ? AQ_POINTER_AXIS_HORIZONTAL : AQ_POINTER_AXIS_VERTICAL,
+            .axis   = axis == WL_POINTER_AXIS_HORIZONTAL_SCROLL ? ABYSSAL_POINTER_AXIS_HORIZONTAL : ABYSSAL_POINTER_AXIS_VERTICAL,
             .delta  = wl_fixed_to_double(value),
         });
     });
@@ -324,7 +324,7 @@ Aquamarine::CWaylandPointer::CWaylandPointer(SP<CCWlPointer> pointer_, Hyprutils
     pointer->setFrame([this](CCWlPointer* r) { events.frame.emit(); });
 }
 
-void Aquamarine::CWaylandPointer::emitWarp(uint32_t timeMs, wl_fixed_t x, wl_fixed_t y) {
+void Abyssal::CWaylandPointer::emitWarp(uint32_t timeMs, wl_fixed_t x, wl_fixed_t y) {
     const auto output = backend->focusedOutput.lock();
     if (!output || output->waylandState.surfaceSize.x <= 0 || output->waylandState.surfaceSize.y <= 0)
         return;
@@ -336,15 +336,15 @@ void Aquamarine::CWaylandPointer::emitWarp(uint32_t timeMs, wl_fixed_t x, wl_fix
     });
 }
 
-Aquamarine::CWaylandPointer::~CWaylandPointer() {
+Abyssal::CWaylandPointer::~CWaylandPointer() {
     ;
 }
 
-const std::string& Aquamarine::CWaylandPointer::getName() {
+const std::string& Abyssal::CWaylandPointer::getName() {
     return name;
 }
 
-void Aquamarine::CWaylandBackend::initSeat() {
+void Abyssal::CWaylandBackend::initSeat() {
     waylandState.seat->setCapabilities([this](CCWlSeat* r, wl_seat_capability cap) {
         const bool HAS_KEYBOARD = ((uint32_t)cap) & WL_SEAT_CAPABILITY_KEYBOARD;
         const bool HAS_POINTER  = ((uint32_t)cap) & WL_SEAT_CAPABILITY_POINTER;
@@ -363,24 +363,24 @@ void Aquamarine::CWaylandBackend::initSeat() {
     });
 }
 
-void Aquamarine::CWaylandBackend::initShell() {
+void Abyssal::CWaylandBackend::initShell() {
     waylandState.xdg->setPing([](CCXdgWmBase* r, uint32_t serial) { r->sendPong(serial); });
 }
 
-bool Aquamarine::CWaylandBackend::initDmabuf() {
+bool Abyssal::CWaylandBackend::initDmabuf() {
     waylandState.dmabufFeedback = makeShared<CCZwpLinuxDmabufFeedbackV1>(waylandState.dmabuf->sendGetDefaultFeedback());
     if (!waylandState.dmabufFeedback) {
-        backend->log(AQ_LOG_ERROR, "initDmabuf: failed to get default feedback");
+        backend->log(ABYSSAL_LOG_ERROR, "initDmabuf: failed to get default feedback");
         return false;
     }
 
     waylandState.dmabufFeedback->setDone([this](CCZwpLinuxDmabufFeedbackV1* r) {
         // no-op
-        backend->log(AQ_LOG_DEBUG, "zwp_linux_dmabuf_v1: Got done");
+        backend->log(ABYSSAL_LOG_DEBUG, "zwp_linux_dmabuf_v1: Got done");
     });
 
     waylandState.dmabufFeedback->setMainDevice([this](CCZwpLinuxDmabufFeedbackV1* r, wl_array* deviceArr) {
-        backend->log(AQ_LOG_DEBUG, "zwp_linux_dmabuf_v1: Got main device");
+        backend->log(ABYSSAL_LOG_DEBUG, "zwp_linux_dmabuf_v1: Got main device");
 
         dev_t device;
         ASSERT(deviceArr->size == sizeof(device));
@@ -388,7 +388,7 @@ bool Aquamarine::CWaylandBackend::initDmabuf() {
 
         drmDevice* drmDev;
         if (drmGetDeviceFromDevId(device, /* flags */ 0, &drmDev) != 0) {
-            backend->log(AQ_LOG_ERROR, "zwp_linux_dmabuf_v1: drmGetDeviceFromDevId failed");
+            backend->log(ABYSSAL_LOG_ERROR, "zwp_linux_dmabuf_v1: drmGetDeviceFromDevId failed");
             return;
         }
 
@@ -400,11 +400,11 @@ bool Aquamarine::CWaylandBackend::initDmabuf() {
             // Mesa will open the right render node under-the-hood.
             ASSERT(drmDev->available_nodes & (1 << DRM_NODE_PRIMARY));
             name = drmDev->nodes[DRM_NODE_PRIMARY];
-            backend->log(AQ_LOG_WARNING, "zwp_linux_dmabuf_v1: DRM device has no render node, using primary.");
+            backend->log(ABYSSAL_LOG_WARNING, "zwp_linux_dmabuf_v1: DRM device has no render node, using primary.");
         }
 
         if (!name) {
-            backend->log(AQ_LOG_ERROR, "zwp_linux_dmabuf_v1: no node name");
+            backend->log(ABYSSAL_LOG_ERROR, "zwp_linux_dmabuf_v1: no node name");
             drmFreeDevice(&drmDev);
             return;
         }
@@ -413,7 +413,7 @@ bool Aquamarine::CWaylandBackend::initDmabuf() {
 
         drmFreeDevice(&drmDev);
 
-        backend->log(AQ_LOG_DEBUG, std::format("zwp_linux_dmabuf_v1: Got node {}", drmState.nodeName));
+        backend->log(ABYSSAL_LOG_DEBUG, std::format("zwp_linux_dmabuf_v1: Got node {}", drmState.nodeName));
     });
 
     waylandState.dmabufFeedback->setFormatTable([this](CCZwpLinuxDmabufFeedbackV1* r, int32_t fd, uint32_t size) {
@@ -428,7 +428,7 @@ bool Aquamarine::CWaylandBackend::initDmabuf() {
 
         auto formatTable = mmap(nullptr, size, PROT_READ, MAP_PRIVATE, fd, 0);
         if (formatTable == MAP_FAILED) {
-            backend->log(AQ_LOG_ERROR, std::format("zwp_linux_dmabuf_v1: Failed to mmap the format table"));
+            backend->log(ABYSSAL_LOG_ERROR, std::format("zwp_linux_dmabuf_v1: Failed to mmap the format table"));
             return;
         }
 
@@ -438,7 +438,7 @@ bool Aquamarine::CWaylandBackend::initDmabuf() {
             auto& fmt = FORMATS[i];
 
             auto  modName = drmGetFormatModifierName(fmt.modifier);
-            backend->log(AQ_LOG_DEBUG, std::format("zwp_linux_dmabuf_v1: Got format {} with modifier {}", fourccToName(fmt.drmFormat), modName ? modName : "UNKNOWN"));
+            backend->log(ABYSSAL_LOG_DEBUG, std::format("zwp_linux_dmabuf_v1: Got format {} with modifier {}", fourccToName(fmt.drmFormat), modName ? modName : "UNKNOWN"));
             free(modName);
 
             auto it = std::ranges::find_if(dmabufFormats, [&fmt](const auto& e) { return e.drmFormat == fmt.drmFormat; });
@@ -458,44 +458,44 @@ bool Aquamarine::CWaylandBackend::initDmabuf() {
     if (!drmState.nodeName.empty()) {
         drmState.fd = open(drmState.nodeName.c_str(), O_RDWR | O_NONBLOCK | O_CLOEXEC);
         if (drmState.fd < 0) {
-            backend->log(AQ_LOG_ERROR, std::format("zwp_linux_dmabuf_v1: Failed to open node {}", drmState.nodeName));
+            backend->log(ABYSSAL_LOG_ERROR, std::format("zwp_linux_dmabuf_v1: Failed to open node {}", drmState.nodeName));
             return false;
         }
 
-        backend->log(AQ_LOG_DEBUG, std::format("zwp_linux_dmabuf_v1: opened node {} with fd {}", drmState.nodeName, drmState.fd));
+        backend->log(ABYSSAL_LOG_DEBUG, std::format("zwp_linux_dmabuf_v1: opened node {} with fd {}", drmState.nodeName, drmState.fd));
     }
 
     return true;
 }
 
-std::vector<SDRMFormat> Aquamarine::CWaylandBackend::getRenderFormats() {
+std::vector<SDRMFormat> Abyssal::CWaylandBackend::getRenderFormats() {
     return dmabufFormats;
 }
 
-std::vector<SDRMFormat> Aquamarine::CWaylandBackend::getCursorFormats() {
+std::vector<SDRMFormat> Abyssal::CWaylandBackend::getCursorFormats() {
     return dmabufFormats;
 }
 
-SP<IAllocator> Aquamarine::CWaylandBackend::preferredAllocator() {
+SP<IAllocator> Abyssal::CWaylandBackend::preferredAllocator() {
     return backend->primaryAllocator;
 }
 
-std::vector<SP<IAllocator>> Aquamarine::CWaylandBackend::getAllocators() {
+std::vector<SP<IAllocator>> Abyssal::CWaylandBackend::getAllocators() {
     return {backend->primaryAllocator};
 }
 
-Hyprutils::Memory::CWeakPointer<IBackendImplementation> Aquamarine::CWaylandBackend::getPrimary() {
+Abyssutils::Memory::CWeakPointer<IBackendImplementation> Abyssal::CWaylandBackend::getPrimary() {
     return {};
 }
 
-Aquamarine::CWaylandOutput::CWaylandOutput(const std::string& name_, Hyprutils::Memory::CWeakPointer<CWaylandBackend> backend_) : backend(backend_) {
+Abyssal::CWaylandOutput::CWaylandOutput(const std::string& name_, Abyssutils::Memory::CWeakPointer<CWaylandBackend> backend_) : backend(backend_) {
     name = name_;
 
     // The scheduler's frameReady signal drives the public events.frame on this output.
     frameReadyListener = sched.frameReady.listen([this]() { events.frame.emit(); });
 
     // a scheduleFrame mid frame, reschedule one more.
-    rescheduleListener = sched.rescheduleNeeded.listen([this]() { scheduleFrame(AQ_SCHEDULE_NEEDS_FRAME); });
+    rescheduleListener = sched.rescheduleNeeded.listen([this]() { scheduleFrame(ABYSSAL_SCHEDULE_NEEDS_FRAME); });
 
     // Idle that emits the scheduled frame, fired via the core backend's idle queue
     // (addIdleEvent), which the consumer's event loop pumps every iteration. Deliberately
@@ -512,36 +512,36 @@ Aquamarine::CWaylandOutput::CWaylandOutput(const std::string& name_, Hyprutils::
     waylandState.surface = makeShared<CCWlSurface>(backend->waylandState.compositor->sendCreateSurface());
 
     if (!waylandState.surface->resource()) {
-        backend->backend->log(AQ_LOG_ERROR, std::format("Output {} failed: no surface given. Errno: {}", name, errno));
+        backend->backend->log(ABYSSAL_LOG_ERROR, std::format("Output {} failed: no surface given. Errno: {}", name, errno));
         return;
     }
 
     waylandState.xdgSurface = makeShared<CCXdgSurface>(backend->waylandState.xdg->sendGetXdgSurface(waylandState.surface->resource()));
 
     if (!waylandState.xdgSurface->resource()) {
-        backend->backend->log(AQ_LOG_ERROR, std::format("Output {} failed: no xdgSurface given. Errno: {}", name, errno));
+        backend->backend->log(ABYSSAL_LOG_ERROR, std::format("Output {} failed: no xdgSurface given. Errno: {}", name, errno));
         return;
     }
 
     waylandState.xdgSurface->setConfigure([this](CCXdgSurface* r, uint32_t serial) {
-        backend->backend->log(AQ_LOG_DEBUG, std::format("Output {}: configure surface with {}", name, serial));
+        backend->backend->log(ABYSSAL_LOG_DEBUG, std::format("Output {}: configure surface with {}", name, serial));
         r->sendAckConfigure(serial);
     });
 
     waylandState.xdgToplevel = makeShared<CCXdgToplevel>(waylandState.xdgSurface->sendGetToplevel());
 
     if (!waylandState.xdgToplevel->resource()) {
-        backend->backend->log(AQ_LOG_ERROR, std::format("Output {} failed: no xdgToplevel given. Errno: {}", name, errno));
+        backend->backend->log(ABYSSAL_LOG_ERROR, std::format("Output {} failed: no xdgToplevel given. Errno: {}", name, errno));
         return;
     }
 
     waylandState.xdgToplevel->setWmCapabilities(
-        [this](CCXdgToplevel* r, wl_array* arr) { backend->backend->log(AQ_LOG_DEBUG, std::format("Output {}: wm_capabilities received", name)); });
+        [this](CCXdgToplevel* r, wl_array* arr) { backend->backend->log(ABYSSAL_LOG_DEBUG, std::format("Output {}: wm_capabilities received", name)); });
 
     waylandState.xdgToplevel->setConfigure([this](CCXdgToplevel* r, int32_t w, int32_t h, wl_array* arr) {
-        backend->backend->log(AQ_LOG_DEBUG, std::format("Output {}: configure toplevel with {}x{}", name, w, h));
+        backend->backend->log(ABYSSAL_LOG_DEBUG, std::format("Output {}: configure toplevel with {}x{}", name, w, h));
         if (w == 0 || h == 0) {
-            backend->backend->log(AQ_LOG_DEBUG, std::format("Output {}: w/h is 0, sending default hardcoded 1280x720", name));
+            backend->backend->log(ABYSSAL_LOG_DEBUG, std::format("Output {}: w/h is 0, sending default hardcoded 1280x720", name));
             w = 1280;
             h = 720;
         }
@@ -555,8 +555,8 @@ Aquamarine::CWaylandOutput::CWaylandOutput(const std::string& name_, Hyprutils::
 
     waylandState.xdgToplevel->setClose([this](CCXdgToplevel* r) { destroy(); });
 
-    waylandState.xdgToplevel->sendSetTitle(std::format("aquamarine - {}", name).c_str());
-    waylandState.xdgToplevel->sendSetAppId("aquamarine");
+    waylandState.xdgToplevel->sendSetTitle(std::format("abyssal - {}", name).c_str());
+    waylandState.xdgToplevel->sendSetAppId("abyssal");
 
     auto inputRegion = makeShared<CCWlRegion>(backend->waylandState.compositor->sendCreateRegion());
     inputRegion->sendAdd(0, 0, INT32_MAX, INT32_MAX);
@@ -567,10 +567,10 @@ Aquamarine::CWaylandOutput::CWaylandOutput(const std::string& name_, Hyprutils::
 
     inputRegion->sendDestroy();
 
-    backend->backend->log(AQ_LOG_DEBUG, std::format("Output {}: initialized", name));
+    backend->backend->log(ABYSSAL_LOG_DEBUG, std::format("Output {}: initialized", name));
 }
 
-Aquamarine::CWaylandOutput::~CWaylandOutput() {
+Abyssal::CWaylandOutput::~CWaylandOutput() {
     events.destroy.emit();
     // frameIdle captures a raw this and may still be queued; pull it before we die.
     backend->backend->removeIdleEvent(frameIdle);
@@ -582,22 +582,22 @@ Aquamarine::CWaylandOutput::~CWaylandOutput() {
         waylandState.surface->sendDestroy();
 }
 
-std::vector<SDRMFormat> Aquamarine::CWaylandOutput::getRenderFormats() {
+std::vector<SDRMFormat> Abyssal::CWaylandOutput::getRenderFormats() {
     // TODO
     // this is technically wrong because this returns the format table formats
     // the actually supported formats are given by tranche formats
     return backend->getRenderFormats();
 }
 
-bool Aquamarine::CWaylandOutput::pendingPageFlip() {
+bool Abyssal::CWaylandOutput::pendingPageFlip() {
     return sched.frameInFlight();
 }
 
-bool Aquamarine::CWaylandOutput::pendingIdleFrame() {
+bool Abyssal::CWaylandOutput::pendingIdleFrame() {
     return sched.frameScheduled();
 }
 
-bool Aquamarine::CWaylandOutput::destroy() {
+bool Abyssal::CWaylandOutput::destroy() {
     if (backend->focusedOutput.lock() == self.lock())
         backend->focusedOutput = {};
 
@@ -610,11 +610,11 @@ bool Aquamarine::CWaylandOutput::destroy() {
     return true;
 }
 
-bool Aquamarine::CWaylandOutput::test() {
+bool Abyssal::CWaylandOutput::test() {
     return true; // TODO:
 }
 
-bool Aquamarine::CWaylandOutput::commit() {
+bool Abyssal::CWaylandOutput::commit() {
     const auto  snapshot  = state->snapshot();
     const auto& STATE     = snapshot.state();
     Vector2D    pixelSize = {};
@@ -624,31 +624,31 @@ bool Aquamarine::CWaylandOutput::commit() {
     else if (STATE.mode)
         pixelSize = STATE.mode->pixelSize;
     else {
-        backend->backend->log(AQ_LOG_ERROR, std::format("Output {}: pending state rejected: invalid mode", name));
+        backend->backend->log(ABYSSAL_LOG_ERROR, std::format("Output {}: pending state rejected: invalid mode", name));
         return false;
     }
 
     uint32_t format = STATE.drmFormat;
 
     if (format == DRM_FORMAT_INVALID) {
-        backend->backend->log(AQ_LOG_ERROR, std::format("Output {}: pending state rejected: invalid format", name));
+        backend->backend->log(ABYSSAL_LOG_ERROR, std::format("Output {}: pending state rejected: invalid format", name));
         return false;
     }
 
     if (!swapchain) {
-        backend->backend->log(AQ_LOG_ERROR, std::format("Output {}: no swapchain, lying because it will soon be here", name));
+        backend->backend->log(ABYSSAL_LOG_ERROR, std::format("Output {}: no swapchain, lying because it will soon be here", name));
         return true;
     }
 
     if (!swapchain->reconfigure(SSwapchainOptions{.length = swapchain->currentOptions().length, .size = pixelSize, .format = format})) {
-        backend->backend->log(AQ_LOG_ERROR, std::format("Output {}: pending state rejected: swapchain failed reconfiguring", name));
+        backend->backend->log(ABYSSAL_LOG_ERROR, std::format("Output {}: pending state rejected: swapchain failed reconfiguring", name));
         return false;
     }
 
     if (!STATE.buffer) {
         // if the consumer explicitly committed a null buffer, that's a violation.
-        if (STATE.committed & COutputState::AQ_OUTPUT_STATE_BUFFER) {
-            backend->backend->log(AQ_LOG_ERROR, std::format("Output {}: pending state rejected: no buffer", name));
+        if (STATE.committed & COutputState::ABYSSAL_OUTPUT_STATE_BUFFER) {
+            backend->backend->log(ABYSSAL_LOG_ERROR, std::format("Output {}: pending state rejected: no buffer", name));
             return false;
         }
 
@@ -660,12 +660,12 @@ bool Aquamarine::CWaylandOutput::commit() {
     auto wlBuffer = wlBufferFromBuffer(STATE.buffer);
 
     if (!wlBuffer) {
-        backend->backend->log(AQ_LOG_ERROR, std::format("Output {}: pending state rejected: no wlBuffer??", name));
+        backend->backend->log(ABYSSAL_LOG_ERROR, std::format("Output {}: pending state rejected: no wlBuffer??", name));
         return false;
     }
 
     if (wlBuffer->pendingRelease)
-        backend->backend->log(AQ_LOG_WARNING, std::format("Output {}: pending state has a non-released buffer??", name));
+        backend->backend->log(ABYSSAL_LOG_WARNING, std::format("Output {}: pending state has a non-released buffer??", name));
 
     wlBuffer->pendingRelease = true;
 
@@ -703,11 +703,11 @@ bool Aquamarine::CWaylandOutput::commit() {
     return true;
 }
 
-SP<IBackendImplementation> Aquamarine::CWaylandOutput::getBackend() {
+SP<IBackendImplementation> Abyssal::CWaylandOutput::getBackend() {
     return SP<IBackendImplementation>(backend.lock());
 }
 
-SP<CWaylandBuffer> Aquamarine::CWaylandOutput::wlBufferFromBuffer(SP<IBuffer> buffer) {
+SP<CWaylandBuffer> Abyssal::CWaylandOutput::wlBufferFromBuffer(SP<IBuffer> buffer) {
     std::erase_if(backendState.buffers, [this](const auto& el) { return el.first.expired() || !swapchain->contains(el.first.lock()); });
 
     for (auto const& [k, v] : backendState.buffers) {
@@ -728,7 +728,7 @@ SP<CWaylandBuffer> Aquamarine::CWaylandOutput::wlBufferFromBuffer(SP<IBuffer> bu
     return wlBuffer;
 }
 
-void Aquamarine::CWaylandOutput::onFrameDone() {
+void Abyssal::CWaylandOutput::onFrameDone() {
     // Mirrors DRM's handlePF: settle scheduler state, emit present, then emit frame
     // via the scheduler signal. The loop self-limits — if the consumer doesn't
     // commit (its needsFrame bit clears in renderMonitor), no new wl_surface.frame
@@ -743,12 +743,12 @@ void Aquamarine::CWaylandOutput::onFrameDone() {
     sched.frameReady.emit();
 }
 
-bool Aquamarine::CWaylandOutput::setCursor(Hyprutils::Memory::CSharedPointer<IBuffer> buffer, const Hyprutils::Math::Vector2D& hotspot) {
+bool Abyssal::CWaylandOutput::setCursor(Abyssutils::Memory::CSharedPointer<IBuffer> buffer, const Abyssutils::Math::Vector2D& hotspot) {
     if (!cursorState.cursorSurface)
         cursorState.cursorSurface = makeShared<CCWlSurface>(backend->waylandState.compositor->sendCreateSurface());
 
     if (!cursorState.cursorSurface) {
-        backend->backend->log(AQ_LOG_ERROR, std::format("Output {}: Failed to create a wl_surface for the cursor", name));
+        backend->backend->log(ABYSSAL_LOG_ERROR, std::format("Output {}: Failed to create a wl_surface for the cursor", name));
         return false;
     }
 
@@ -769,13 +769,13 @@ bool Aquamarine::CWaylandOutput::setCursor(Hyprutils::Memory::CSharedPointer<IBu
 
         int fd = allocateSHMFile(bufLen);
         if (fd < 0) {
-            backend->backend->log(AQ_LOG_ERROR, std::format("Output {}: Failed to allocate a shm file", name));
+            backend->backend->log(ABYSSAL_LOG_ERROR, std::format("Output {}: Failed to allocate a shm file", name));
             return false;
         }
 
         void* data = mmap(nullptr, bufLen, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
         if (data == MAP_FAILED) {
-            backend->backend->log(AQ_LOG_ERROR, std::format("Output {}: Failed to mmap the cursor pixel data", name));
+            backend->backend->log(ABYSSAL_LOG_ERROR, std::format("Output {}: Failed to mmap the cursor pixel data", name));
             close(fd);
             return false;
         }
@@ -785,7 +785,7 @@ bool Aquamarine::CWaylandOutput::setCursor(Hyprutils::Memory::CSharedPointer<IBu
 
         auto pool = makeShared<CCWlShmPool>(backend->waylandState.shm->sendCreatePool(fd, bufLen));
         if (!pool) {
-            backend->backend->log(AQ_LOG_ERROR, std::format("Output {}: Failed to submit a wl_shm pool", name));
+            backend->backend->log(ABYSSAL_LOG_ERROR, std::format("Output {}: Failed to submit a wl_shm pool", name));
             close(fd);
             return false;
         }
@@ -804,12 +804,12 @@ bool Aquamarine::CWaylandOutput::setCursor(Hyprutils::Memory::CSharedPointer<IBu
 
         cursorState.cursorWlBuffer = makeShared<CCWlBuffer>(params->sendCreateImmed(attrs.size.x, attrs.size.y, attrs.format, (zwpLinuxBufferParamsV1Flags)0));
     } else {
-        backend->backend->log(AQ_LOG_ERROR, std::format("Output {}: Failed to create a buffer for cursor: No known attrs (tried dmabuf / shm)", name));
+        backend->backend->log(ABYSSAL_LOG_ERROR, std::format("Output {}: Failed to create a buffer for cursor: No known attrs (tried dmabuf / shm)", name));
         return false;
     }
 
     if (!cursorState.cursorWlBuffer) {
-        backend->backend->log(AQ_LOG_ERROR, std::format("Output {}: Failed to create a buffer for cursor", name));
+        backend->backend->log(ABYSSAL_LOG_ERROR, std::format("Output {}: Failed to create a buffer for cursor", name));
         return false;
     }
 
@@ -826,11 +826,11 @@ bool Aquamarine::CWaylandOutput::setCursor(Hyprutils::Memory::CSharedPointer<IBu
     return true;
 }
 
-void Aquamarine::CWaylandOutput::moveCursor(const Hyprutils::Math::Vector2D& coord, bool skipSchedule) {
+void Abyssal::CWaylandOutput::moveCursor(const Abyssutils::Math::Vector2D& coord, bool skipSchedule) {
     ;
 }
 
-void Aquamarine::CWaylandOutput::onEnter(SP<CCWlPointer> pointer, uint32_t serial) {
+void Abyssal::CWaylandOutput::onEnter(SP<CCWlPointer> pointer, uint32_t serial) {
     cursorState.serial = serial;
 
     if (!cursorState.cursorSurface)
@@ -839,12 +839,12 @@ void Aquamarine::CWaylandOutput::onEnter(SP<CCWlPointer> pointer, uint32_t seria
     pointer->sendSetCursor(serial, cursorState.cursorSurface.get(), cursorState.hotspot.x, cursorState.hotspot.y);
 }
 
-Hyprutils::Math::Vector2D Aquamarine::CWaylandOutput::cursorPlaneSize() {
+Abyssutils::Math::Vector2D Abyssal::CWaylandOutput::cursorPlaneSize() {
     return {-1, -1}; // no limit
 }
 
-void Aquamarine::CWaylandOutput::scheduleFrame(const scheduleFrameReason reason) {
-    TRACE(backend->backend->log(AQ_LOG_TRACE,
+void Abyssal::CWaylandOutput::scheduleFrame(const scheduleFrameReason reason) {
+    TRACE(backend->backend->log(ABYSSAL_LOG_TRACE,
                                 std::format("CWaylandOutput::scheduleFrame: reason {}, needsFrame {}, canSchedule {}", (uint32_t)reason, needsFrame, sched.canSchedule())));
     needsFrame = true;
 
@@ -861,11 +861,11 @@ void Aquamarine::CWaylandOutput::scheduleFrame(const scheduleFrameReason reason)
     backend->backend->addIdleEvent(frameIdle);
 }
 
-Aquamarine::CWaylandBuffer::CWaylandBuffer(SP<IBuffer> buffer_, Hyprutils::Memory::CWeakPointer<CWaylandBackend> backend_) : buffer(buffer_), backend(backend_) {
+Abyssal::CWaylandBuffer::CWaylandBuffer(SP<IBuffer> buffer_, Abyssutils::Memory::CWeakPointer<CWaylandBackend> backend_) : buffer(buffer_), backend(backend_) {
     auto params = makeShared<CCZwpLinuxBufferParamsV1>(backend->waylandState.dmabuf->sendCreateParams());
 
     if (!params) {
-        backend->backend->log(AQ_LOG_ERROR, "WaylandBuffer: failed to query params");
+        backend->backend->log(ABYSSAL_LOG_ERROR, "WaylandBuffer: failed to query params");
         return;
     }
 
@@ -882,11 +882,11 @@ Aquamarine::CWaylandBuffer::CWaylandBuffer(SP<IBuffer> buffer_, Hyprutils::Memor
     params->sendDestroy();
 }
 
-Aquamarine::CWaylandBuffer::~CWaylandBuffer() {
+Abyssal::CWaylandBuffer::~CWaylandBuffer() {
     if (waylandState.buffer && waylandState.buffer->resource())
         waylandState.buffer->sendDestroy();
 }
 
-bool Aquamarine::CWaylandBuffer::good() {
+bool Abyssal::CWaylandBuffer::good() {
     return waylandState.buffer && waylandState.buffer->resource();
 }

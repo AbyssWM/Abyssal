@@ -1,8 +1,8 @@
 #pragma once
 
-#include <hyprutils/signal/Signal.hpp>
+#include <abyssutils/signal/Signal.hpp>
 
-namespace Aquamarine {
+namespace Abyssal {
     // Per-output frame scheduling state, shared by the DRM and Wayland backends.
     //
     // Both backends produce an end-of-frame event — DRM from the kernel page-flip
@@ -43,10 +43,10 @@ namespace Aquamarine {
         void requestReschedule();
 
         // Fires from onFrameComplete. The output wires this to events.frame.emit.
-        Hyprutils::Signal::CSignalT<> frameReady;
+        Abyssutils::Signal::CSignalT<> frameReady;
 
         // emits from ~CFrameRunningGuard if m_rescheduleRequested is set.
-        Hyprutils::Signal::CSignalT<> rescheduleNeeded;
+        Abyssutils::Signal::CSignalT<> rescheduleNeeded;
 
       private:
         bool m_pending             = false;

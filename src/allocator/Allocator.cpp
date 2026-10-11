@@ -1,3 +1,3 @@
-#include <aquamarine/allocator/Allocator.hpp>
+#include <abyssal/allocator/Allocator.hpp>
 
-void Aquamarine::IAllocator::destroyBuffers() {}
+void Abyssal::IAllocator::destroyBuffers() {}

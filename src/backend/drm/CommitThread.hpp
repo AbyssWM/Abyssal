@@ -10,10 +10,10 @@
 #include <unordered_set>
 #include <vector>
 
-#include <hyprutils/memory/UniquePtr.hpp>
-#include <hyprutils/os/FileDescriptor.hpp>
+#include <abyssutils/memory/UniquePtr.hpp>
+#include <abyssutils/os/FileDescriptor.hpp>
 
-namespace Aquamarine {
+namespace Abyssal {
     class IDRMCommitThreadData {
       public:
         virtual ~IDRMCommitThreadData();
@@ -31,7 +31,7 @@ namespace Aquamarine {
         std::optional<std::chrono::steady_clock::time_point>    submitAt;
         std::optional<std::chrono::steady_clock::time_point>    targetPresentation;
         bool                                                    blocksQueue = true;
-        Hyprutils::Memory::CUniquePointer<IDRMCommitThreadData> data;
+        Abyssutils::Memory::CUniquePointer<IDRMCommitThreadData> data;
     };
 
     class IDRMCommitSubmitter {
@@ -51,9 +51,9 @@ namespace Aquamarine {
     class CDRMCommitThread {
       public:
         enum eResultStatus : uint32_t {
-            AQ_DRM_COMMIT_THREAD_SUBMITTED = 0,
-            AQ_DRM_COMMIT_THREAD_FAILED,
-            AQ_DRM_COMMIT_THREAD_CANCELLED,
+            ABYSSAL_DRM_COMMIT_THREAD_SUBMITTED = 0,
+            ABYSSAL_DRM_COMMIT_THREAD_FAILED,
+            ABYSSAL_DRM_COMMIT_THREAD_CANCELLED,
         };
 
         struct SResult {
@@ -62,18 +62,18 @@ namespace Aquamarine {
             SResult& operator=(SResult&&);
             ~SResult();
 
-            Hyprutils::Memory::CUniquePointer<SDRMCommitThreadRequest> request;
-            eResultStatus                                              status       = AQ_DRM_COMMIT_THREAD_FAILED;
+            Abyssutils::Memory::CUniquePointer<SDRMCommitThreadRequest> request;
+            eResultStatus                                              status       = ABYSSAL_DRM_COMMIT_THREAD_FAILED;
             int                                                        error        = 0;
             bool                                                       missedTarget = false;
             std::chrono::steady_clock::time_point                      completedAt;
         };
 
-        static Hyprutils::Memory::CUniquePointer<CDRMCommitThread> create(Hyprutils::Memory::CUniquePointer<IDRMCommitSubmitter> submitter);
+        static Abyssutils::Memory::CUniquePointer<CDRMCommitThread> create(Abyssutils::Memory::CUniquePointer<IDRMCommitSubmitter> submitter);
 
         ~CDRMCommitThread();
 
-        std::optional<uint64_t> enqueue(Hyprutils::Memory::CUniquePointer<SDRMCommitThreadRequest>&& request);
+        std::optional<uint64_t> enqueue(Abyssutils::Memory::CUniquePointer<SDRMCommitThreadRequest>&& request);
         size_t                  cancelOwner(uint64_t ownerID);
         bool                    pauseQueue(uint64_t queueKey);
         bool                    resumeQueue(uint64_t queueKey);
@@ -89,7 +89,7 @@ namespace Aquamarine {
       private:
         struct SQueuedRequest {
             uint64_t                                                   sequence = 0;
-            Hyprutils::Memory::CUniquePointer<SDRMCommitThreadRequest> request;
+            Abyssutils::Memory::CUniquePointer<SDRMCommitThreadRequest> request;
         };
 
         struct SBlocker {
@@ -103,17 +103,17 @@ namespace Aquamarine {
             uint64_t queueKey = 0;
         };
 
-        CDRMCommitThread(Hyprutils::Memory::CUniquePointer<IDRMCommitSubmitter> submitter);
+        CDRMCommitThread(Abyssutils::Memory::CUniquePointer<IDRMCommitSubmitter> submitter);
 
         void                                                                    run();
         void                                                                    stop();
-        Hyprutils::Memory::CUniquePointer<SDRMCommitThreadRequest>              takeNextRequest(std::unique_lock<std::mutex>& lock);
+        Abyssutils::Memory::CUniquePointer<SDRMCommitThreadRequest>              takeNextRequest(std::unique_lock<std::mutex>& lock);
         void                                                                    appendResult(SResult&& result);
         void                                                                    signalResults();
-        std::vector<Hyprutils::Memory::CUniquePointer<SDRMCommitThreadRequest>> takeOwnerRequests(uint64_t ownerID);
+        std::vector<Abyssutils::Memory::CUniquePointer<SDRMCommitThreadRequest>> takeOwnerRequests(uint64_t ownerID);
 
-        Hyprutils::Memory::CUniquePointer<IDRMCommitSubmitter>                  m_submitter;
-        Hyprutils::OS::CFileDescriptor                                          m_completionFD;
+        Abyssutils::Memory::CUniquePointer<IDRMCommitSubmitter>                  m_submitter;
+        Abyssutils::OS::CFileDescriptor                                          m_completionFD;
         std::thread                                                             m_thread;
         std::mutex                                                              m_stopMutex;
 

@@ -1,32 +1,32 @@
-#include <aquamarine/backend/Backend.hpp>
-#include <aquamarine/output/Output.hpp>
-#include <aquamarine/input/Input.hpp>
+#include <abyssal/backend/Backend.hpp>
+#include <abyssal/output/Output.hpp>
+#include <abyssal/input/Input.hpp>
 #include <iostream>
 #include <wayland-server.h>
 
-using namespace Hyprutils::Signal;
-using namespace Hyprutils::Memory;
+using namespace Abyssutils::Signal;
+using namespace Abyssutils::Memory;
 #define SP CSharedPointer
 
-static const char* aqLevelToString(Aquamarine::eBackendLogLevel level) {
+static const char* aqLevelToString(Abyssal::eBackendLogLevel level) {
     switch (level) {
-        case Aquamarine::eBackendLogLevel::AQ_LOG_TRACE: return "TRACE";
-        case Aquamarine::eBackendLogLevel::AQ_LOG_DEBUG: return "DEBUG";
-        case Aquamarine::eBackendLogLevel::AQ_LOG_ERROR: return "ERROR";
-        case Aquamarine::eBackendLogLevel::AQ_LOG_WARNING: return "WARNING";
-        case Aquamarine::eBackendLogLevel::AQ_LOG_CRITICAL: return "CRITICAL";
+        case Abyssal::eBackendLogLevel::ABYSSAL_LOG_TRACE: return "TRACE";
+        case Abyssal::eBackendLogLevel::ABYSSAL_LOG_DEBUG: return "DEBUG";
+        case Abyssal::eBackendLogLevel::ABYSSAL_LOG_ERROR: return "ERROR";
+        case Abyssal::eBackendLogLevel::ABYSSAL_LOG_WARNING: return "WARNING";
+        case Abyssal::eBackendLogLevel::ABYSSAL_LOG_CRITICAL: return "CRITICAL";
         default: break;
     }
 
     return "UNKNOWN";
 }
 
-void aqLog(Aquamarine::eBackendLogLevel level, std::string msg) {
+void aqLog(Abyssal::eBackendLogLevel level, std::string msg) {
     std::cout << "[AQ] [" << aqLevelToString(level) << "] " << msg << "\n";
 }
 
-CHyprSignalListener     newOutputListener, outputFrameListener, outputStateListener, mouseMotionListener, keyboardKeyListener, newMouseListener, newKeyboardListener;
-SP<Aquamarine::IOutput> output;
+CAbyssSignalListener     newOutputListener, outputFrameListener, outputStateListener, mouseMotionListener, keyboardKeyListener, newMouseListener, newKeyboardListener;
+SP<Abyssal::IOutput> output;
 
 //
 void onFrame() {
@@ -38,45 +38,45 @@ void onFrame() {
     output->commit();
 }
 
-void onState(const Aquamarine::IOutput::SStateEvent& event) {
+void onState(const Abyssal::IOutput::SStateEvent& event) {
     std::cout << "[Client] onState with size " << std::format("{}", event.size) << "\n";
 
     output->state->setEnabled(true);
-    output->state->setCustomMode(makeShared<Aquamarine::SOutputMode>(Aquamarine::SOutputMode{.pixelSize = event.size}));
+    output->state->setCustomMode(makeShared<Abyssal::SOutputMode>(Abyssal::SOutputMode{.pixelSize = event.size}));
     output->state->setFormat(DRM_FORMAT_XRGB8888);
 
     output->commit();
 }
 
 int main(int argc, char** argv, char** envp) {
-    Aquamarine::SBackendOptions options;
+    Abyssal::SBackendOptions options;
     options.logFunction = aqLog;
 
-    std::vector<Aquamarine::SBackendImplementationOptions> implementations;
-    Aquamarine::SBackendImplementationOptions              waylandOptions;
-    waylandOptions.backendType        = Aquamarine::eBackendType::AQ_BACKEND_WAYLAND;
-    waylandOptions.backendRequestMode = Aquamarine::eBackendRequestMode::AQ_BACKEND_REQUEST_IF_AVAILABLE;
+    std::vector<Abyssal::SBackendImplementationOptions> implementations;
+    Abyssal::SBackendImplementationOptions              waylandOptions;
+    waylandOptions.backendType        = Abyssal::eBackendType::ABYSSAL_BACKEND_WAYLAND;
+    waylandOptions.backendRequestMode = Abyssal::eBackendRequestMode::ABYSSAL_BACKEND_REQUEST_IF_AVAILABLE;
     implementations.emplace_back(waylandOptions);
 
-    auto aqBackend = Aquamarine::CBackend::create(implementations, options);
+    auto aqBackend = Abyssal::CBackend::create(implementations, options);
 
-    newOutputListener = aqBackend->events.newOutput.listen([](const SP<Aquamarine::IOutput> newOutput) {
+    newOutputListener = aqBackend->events.newOutput.listen([](const SP<Abyssal::IOutput> newOutput) {
         output = newOutput;
 
         std::cout << "[Client] Got a new output named " << output->name << "\n";
 
         outputFrameListener = output->events.frame.listen([] { onFrame(); });
-        outputStateListener = output->events.state.listen([](const Aquamarine::IOutput::SStateEvent& event) { onState(event); });
+        outputStateListener = output->events.state.listen([](const Abyssal::IOutput::SStateEvent& event) { onState(event); });
     });
 
-    newMouseListener = aqBackend->events.newPointer.listen([](const SP<Aquamarine::IPointer>& pointer) {
+    newMouseListener = aqBackend->events.newPointer.listen([](const SP<Abyssal::IPointer>& pointer) {
         mouseMotionListener = pointer->events.warp.listen(
-            [](const Aquamarine::IPointer::SWarpEvent& event) { std::cout << "[Client] Mouse warped to " << std::format("{}", event.absolute) << "\n"; });
+            [](const Abyssal::IPointer::SWarpEvent& event) { std::cout << "[Client] Mouse warped to " << std::format("{}", event.absolute) << "\n"; });
     });
 
-    newKeyboardListener = aqBackend->events.newKeyboard.listen([](const SP<Aquamarine::IKeyboard>& keyboard) {
+    newKeyboardListener = aqBackend->events.newKeyboard.listen([](const SP<Abyssal::IKeyboard>& keyboard) {
         keyboardKeyListener = keyboard->events.key.listen(
-            [](const Aquamarine::IKeyboard::SKeyEvent& event) { std::cout << "[Client] Key " << std::format("{}", event.key) << " state: " << event.pressed << " \n"; });
+            [](const Abyssal::IKeyboard::SKeyEvent& event) { std::cout << "[Client] Key " << std::format("{}", event.key) << " state: " << event.pressed << " \n"; });
     });
 
     if (!aqBackend || !aqBackend->start()) {

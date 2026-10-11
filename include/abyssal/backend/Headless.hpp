@@ -3,10 +3,10 @@
 #include "./Backend.hpp"
 #include "../allocator/Swapchain.hpp"
 #include "../output/Output.hpp"
-#include <hyprutils/memory/WeakPtr.hpp>
-#include <hyprutils/os/FileDescriptor.hpp>
+#include <abyssutils/memory/WeakPtr.hpp>
+#include <abyssutils/os/FileDescriptor.hpp>
 
-namespace Aquamarine {
+namespace Abyssal {
     class CBackend;
     class CHeadlessBackend;
     class IAllocator;
@@ -16,21 +16,21 @@ namespace Aquamarine {
         virtual ~CHeadlessOutput();
         virtual bool                                                      commit();
         virtual bool                                                      test();
-        virtual Hyprutils::Memory::CSharedPointer<IBackendImplementation> getBackend();
-        virtual void                                                      scheduleFrame(const scheduleFrameReason reason = AQ_SCHEDULE_UNKNOWN);
+        virtual Abyssutils::Memory::CSharedPointer<IBackendImplementation> getBackend();
+        virtual void                                                      scheduleFrame(const scheduleFrameReason reason = ABYSSAL_SCHEDULE_UNKNOWN);
         virtual bool                                                      destroy();
         virtual std::vector<SDRMFormat>                                   getRenderFormats();
         virtual bool                                                      pendingPageFlip();
         virtual bool                                                      pendingIdleFrame();
 
-        Hyprutils::Memory::CWeakPointer<CHeadlessOutput>                  self;
+        Abyssutils::Memory::CWeakPointer<CHeadlessOutput>                  self;
 
       private:
-        CHeadlessOutput(const std::string& name_, Hyprutils::Memory::CWeakPointer<CHeadlessBackend> backend_);
+        CHeadlessOutput(const std::string& name_, Abyssutils::Memory::CWeakPointer<CHeadlessBackend> backend_);
 
-        Hyprutils::Memory::CWeakPointer<CHeadlessBackend>        backend;
+        Abyssutils::Memory::CWeakPointer<CHeadlessBackend>        backend;
 
-        Hyprutils::Memory::CSharedPointer<std::function<void()>> framecb;
+        Abyssutils::Memory::CSharedPointer<std::function<void()>> framecb;
         bool                                                     frameScheduled = false;
         std::chrono::steady_clock::time_point                    lastFrame;
 
@@ -42,27 +42,27 @@ namespace Aquamarine {
         virtual ~CHeadlessBackend();
         virtual eBackendType                                               type();
         virtual bool                                                       start();
-        virtual std::vector<Hyprutils::Memory::CSharedPointer<SPollFD>>    pollFDs();
+        virtual std::vector<Abyssutils::Memory::CSharedPointer<SPollFD>>    pollFDs();
         virtual int                                                        drmFD();
         virtual bool                                                       dispatchEvents();
         virtual uint32_t                                                   capabilities();
-        virtual bool                                                       setCursor(Hyprutils::Memory::CSharedPointer<IBuffer> buffer, const Hyprutils::Math::Vector2D& hotspot);
+        virtual bool                                                       setCursor(Abyssutils::Memory::CSharedPointer<IBuffer> buffer, const Abyssutils::Math::Vector2D& hotspot);
         virtual void                                                       onReady();
         virtual std::vector<SDRMFormat>                                    getRenderFormats();
         virtual std::vector<SDRMFormat>                                    getCursorFormats();
         virtual bool                                                       createOutput(const std::string& name = "");
-        virtual Hyprutils::Memory::CSharedPointer<IAllocator>              preferredAllocator();
-        virtual std::vector<Hyprutils::Memory::CSharedPointer<IAllocator>> getAllocators();
-        virtual Hyprutils::Memory::CWeakPointer<IBackendImplementation>    getPrimary();
+        virtual Abyssutils::Memory::CSharedPointer<IAllocator>              preferredAllocator();
+        virtual std::vector<Abyssutils::Memory::CSharedPointer<IAllocator>> getAllocators();
+        virtual Abyssutils::Memory::CWeakPointer<IBackendImplementation>    getPrimary();
 
-        Hyprutils::Memory::CWeakPointer<CHeadlessBackend>                  self;
+        Abyssutils::Memory::CWeakPointer<CHeadlessBackend>                  self;
         virtual int                                                        drmRenderNodeFD();
 
       private:
-        CHeadlessBackend(Hyprutils::Memory::CSharedPointer<CBackend> backend_);
+        CHeadlessBackend(Abyssutils::Memory::CSharedPointer<CBackend> backend_);
 
-        Hyprutils::Memory::CWeakPointer<CBackend>                       backend;
-        std::vector<Hyprutils::Memory::CSharedPointer<CHeadlessOutput>> outputs;
+        Abyssutils::Memory::CWeakPointer<CBackend>                       backend;
+        std::vector<Abyssutils::Memory::CSharedPointer<CHeadlessOutput>> outputs;
 
         size_t                                                          outputIDCounter = 0;
 
@@ -74,7 +74,7 @@ namespace Aquamarine {
         };
 
         struct {
-            Hyprutils::OS::CFileDescriptor timerfd;
+            Abyssutils::OS::CFileDescriptor timerfd;
             std::vector<CTimer>            timers;
         } timers;
 

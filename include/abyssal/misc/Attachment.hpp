@@ -1,11 +1,11 @@
 #pragma once
 
 #include <vector>
-#include <hyprutils/memory/SharedPtr.hpp>
+#include <abyssutils/memory/SharedPtr.hpp>
 #include <unordered_map>
 #include <typeindex>
 
-namespace Aquamarine {
+namespace Abyssal {
     class IAttachment {
       public:
         virtual ~IAttachment() {
@@ -26,18 +26,18 @@ namespace Aquamarine {
             return attachments.contains(typeid(T));
         }
         template <AttachmentConcept T>
-        Hyprutils::Memory::CSharedPointer<T> get() const {
+        Abyssutils::Memory::CSharedPointer<T> get() const {
             auto it = attachments.find(typeid(T));
             if (it == attachments.end())
                 return nullptr;
             // Reinterpret SP<IAttachment> into SP<T>.
             // This is safe because we looked up this attachment by typeid(T),
             // so it must be an SP<T>.
-            return Hyprutils::Memory::reinterpretPointerCast<T>(it->second);
+            return Abyssutils::Memory::reinterpretPointerCast<T>(it->second);
         }
         // Also removes the previous attachment of the same type if one exists
-        void add(Hyprutils::Memory::CSharedPointer<IAttachment> attachment);
-        void remove(Hyprutils::Memory::CSharedPointer<IAttachment> attachment);
+        void add(Abyssutils::Memory::CSharedPointer<IAttachment> attachment);
+        void remove(Abyssutils::Memory::CSharedPointer<IAttachment> attachment);
         template <AttachmentConcept T>
         void removeByType() {
             attachments.erase(typeid(T));
@@ -45,6 +45,6 @@ namespace Aquamarine {
         void clear();
 
       private:
-        std::unordered_map<std::type_index, Hyprutils::Memory::CSharedPointer<IAttachment>> attachments;
+        std::unordered_map<std::type_index, Abyssutils::Memory::CSharedPointer<IAttachment>> attachments;
     };
 };
