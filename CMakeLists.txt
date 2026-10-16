@@ -140,6 +140,8 @@ add_test(
   NAME "simpleWindow"
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests
   COMMAND simpleWindow "simpleWindow")
+# Requires a running Wayland compositor and a render device.
+set_tests_properties(simpleWindow PROPERTIES LABELS integration)
 add_dependencies(tests simpleWindow)
 
 add_executable(attachments "tests/Attachments.cpp")

@@ -6,5 +6,6 @@ Name: abyssal
 URL: https://github.com/AbyssWM/abyssal
 Description: A very light linux rendering backend library
 Version: @ABYSSAL_VERSION@
+Requires: abyssutils >= 0.8.0, pixman-1, libdrm, wayland-client
 Cflags: -I${includedir}
 Libs: -L${libdir} -labyssal

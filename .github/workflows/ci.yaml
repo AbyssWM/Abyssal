@@ -19,8 +19,8 @@ jobs:
           pacman --noconfirm --noprogressbar -Syyu
           pacman --noconfirm --noprogressbar -S \
             base-devel cmake git ninja pkgconf clang lld libc++ \
-            pixman libseat libinput wayland wayland-protocols libdrm mesa \
-            libdisplay-info hwdata systemd gtest
+            pixman seatd libinput wayland wayland-protocols libdrm mesa \
+            libdisplay-info hwdata systemd gtest pugixml
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -85,7 +85,7 @@ jobs:
           export PATH="$PREFIX/bin:$PATH"
           export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$PREFIX/share/pkgconfig"
           export CMAKE_PREFIX_PATH="$PREFIX"
-          cd build && ctest --output-on-failure
+          cd build && ctest --output-on-failure -LE integration
 
       - name: Install
         run: |

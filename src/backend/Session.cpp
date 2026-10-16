@@ -226,11 +226,11 @@ void Abyssal::CSessionDevice::resolveMatchingRenderNode(udev_device* cardDevice)
     // We only fall back when there is exactly one renderD on the
     // system. Multi-renderD configs (eGPU + iGPU, evdi, capture
     // devices) can't be disambiguated from this layer; picking the
-    // wrong one is what regressed PR #237 per #260 (abysspaper SIGABRT
+    // wrong one is what regressed PR #237 per #260 (hyprpaper SIGABRT
     // on eglQueryDeviceStringEXT). Counting first lets Asahi succeed
     // while leaving multi-renderD systems unchanged from upstream.
     //
-    // Refs abysswm/abyssal#260 (M1/M2 reports), PR #237 (unconditional
+    // Refs hyprwm/aquamarine#260 (M1/M2 reports), PR #237 (unconditional
     // for non-standard buses, reverted by 8ed71bb), commit 2455556b
     // (last known-good on M-series Asahi per the #260 thread).
     if (renderNodeFd < 0) {
