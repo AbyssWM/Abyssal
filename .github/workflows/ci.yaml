@@ -23,7 +23,7 @@ jobs:
             libdisplay-info hwdata systemd gtest
 
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Mark directory as safe for git
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
@@ -85,7 +85,7 @@ jobs:
           export PATH="$PREFIX/bin:$PATH"
           export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$PREFIX/share/pkgconfig"
           export CMAKE_PREFIX_PATH="$PREFIX"
-          cd build && ctest --output-on-failure || true
+          cd build && ctest --output-on-failure
 
       - name: Install
         run: |
@@ -100,7 +100,7 @@ jobs:
           tar -cvJf Abyssal.tar.xz abyssal
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: Build archive
           path: Abyssal.tar.xz

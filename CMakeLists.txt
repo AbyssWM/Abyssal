@@ -110,10 +110,10 @@ function(protocolWayland)
   target_sources(abyssal PRIVATE protocols/wayland.cpp protocols/wayland.hpp)
 endfunction()
 
-protocolwayland()
+protocolWayland()
 
-protocolnew("stable/xdg-shell" "xdg-shell" false)
-protocolnew("stable/linux-dmabuf" "linux-dmabuf-v1" false)
+protocolNew("stable/xdg-shell" "xdg-shell" false)
+protocolNew("stable/linux-dmabuf" "linux-dmabuf-v1" false)
 
 # Generate hwdata info
 pkg_get_variable(HWDATA_DIR hwdata pkgdatadir)
